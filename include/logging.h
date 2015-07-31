@@ -25,8 +25,6 @@ void Log(int level, const char* fmt, ...);
 
 } // namespace common
 
-#define LOG(level, fmt, args...) Log(level, "[%s:%d] "fmt, __FILE__, __LINE__, ##args)
-
 using common::DEBUG;
 using common::INFO;
 using common::WARNING;
@@ -34,6 +32,8 @@ using common::FATAL;
 
 } // namespace baidu
 
-#endif  // COMMON_LOGGING_H_
+#define LOG(level, fmt, args...) ::baidu::common::Log(level, "[%s:%d] "fmt, __FILE__, __LINE__, ##args)
+
+#endif  // BAIDU_COMMON_LOGGING_H_
 
 /* vim: set expandtab ts=4 sw=4 sts=4 tw=100: */
