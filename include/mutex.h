@@ -4,7 +4,7 @@
 //
 // Author: yanshiguang02@baidu.com
 
-#ifndef  BAIUD_COMMON_LOCK_MUTEX_H_
+#ifndef  BAIDU_COMMON_LOCK_MUTEX_H_
 #define  BAIDU_COMMON_LOCK_MUTEX_H_
 
 #include <stdint.h>
