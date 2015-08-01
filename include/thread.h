@@ -21,6 +21,11 @@ public:
         int ret = pthread_create(&tid_, NULL, ProcWrapper, this);
         return (ret == 0);
     }
+    typedef void* (Proc)(void*);
+    bool Start(Proc proc, void* arg) {
+        int ret = pthread_create(&tid_, NULL, proc, arg);
+        return (ret == 0);
+    }
     bool Join() {
         int ret = pthread_join(tid_, NULL);
         return (ret == 0);

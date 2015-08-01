@@ -67,6 +67,10 @@ static inline std::string NumToString(int num) {
     return NumToString(static_cast<int64_t>(num));
 }
 
+static inline std::string NumToString(uint32_t num) {
+    return NumToString(static_cast<int64_t>(num));
+}
+
 static inline std::string NumToString(double num) {
     char buf[32];
     snprintf(buf, sizeof(buf), "%.3f", num);
