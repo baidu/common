@@ -10,6 +10,7 @@
 #include <deque>
 #include <map>
 #include <queue>
+#include <sstream>
 #include <vector>
 #include <boost/function.hpp>
 #include "mutex.h"
@@ -29,7 +30,11 @@ public:
           work_cv_(&mutex_),
           stop_(false),
           last_task_id_(0),
-          running_task_id_(0) {
+          running_task_id_(0),
+          schedule_cost_sum_(0),
+          schedule_count_(0),
+          task_cost_sum_(0),
+          task_count_(0) {
         Start();
     }
     ~ThreadPool() {
@@ -79,46 +84,54 @@ public:
 
     // Add a task to the thread pool.
     void AddTask(const Task& task) {
-        MutexLock lock(&mutex_, "AddTask", kDebugCheckTime);
-        int64_t exe_time = timer::get_micros();
-        BGItem bg_item = {++last_task_id_, exe_time, task, false};
-        queue_.push_back(bg_item);
+        MutexLock lock(&mutex_, "AddTask");
+        queue_.push_back(BGItem(0, timer::get_micros(), task));
         ++pending_num_;
         work_cv_.Signal();
     }
     void AddPriorityTask(const Task& task) {
-        MutexLock lock(&mutex_, "AddPriorityTask", kDebugCheckTime);
-        int64_t exe_time = timer::get_micros();
-        BGItem bg_item = {++last_task_id_, exe_time, task, false};
-        queue_.push_back(bg_item);
+        MutexLock lock(&mutex_);
+        queue_.push_front(BGItem(0, timer::get_micros(), task));
         ++pending_num_;
         work_cv_.Signal();
     }
-    int64_t DelayTask(int64_t delay_ms, const Task& task) {
-        MutexLock lock(&mutex_, "DelayTask", kDebugCheckTime);
+    int64_t DelayTask(int64_t delay, const Task& task) {
+        MutexLock lock(&mutex_);
         int64_t now_time = timer::get_micros();
-        int64_t exe_time = now_time + delay_ms * 1000;
-        BGItem bg_item = {++last_task_id_, exe_time, task, false};
+        int64_t exe_time = now_time + delay * 1000;
+        BGItem bg_item(++last_task_id_, exe_time, task);
         time_queue_.push(bg_item);
         latest_[bg_item.id] = bg_item;
         work_cv_.Signal();
         return bg_item.id;
     }
-    /// Cancel a delayed task ,if running, wait
-    bool CancelTask(int64_t task_id) {
+    /// Cancel a delayed task
+    /// if running, wait if non_block==false; return immediately if non_block==true
+    bool CancelTask(int64_t task_id, bool non_block = false, bool* is_running = NULL) {
         if (task_id == 0) {
+            if (is_running != NULL) {
+                *is_running = false;
+            }
             return false;
         }
         while (1) {
             {
-                MutexLock lock(&mutex_, "CancelTask", kDebugCheckTime);
+                MutexLock lock(&mutex_);
                 if (running_task_id_ != task_id) {
                     BGMap::iterator it = latest_.find(task_id);
                     if (it == latest_.end()) {
+                        if (is_running != NULL) {
+                            *is_running = false;
+                        }
                         return false;
                     }
                     latest_.erase(it);
                     return true;
+                } else if (non_block) {
+                    if (is_running != NULL) {
+                        *is_running = true;
+                    }
+                    return false;
                 }
             }
             timespec ts = {0, 100000};
@@ -128,16 +141,34 @@ public:
     int64_t PendingNum() const {
         return pending_num_;
     }
-    int64_t RecentAverageDelay() {
-        MutexLock lock(&mutex_, "AverageDelay", kDebugCheckTime);
-        int64_t ret = 0;
-        if (task_num_) {
-            ret = task_delay_ / task_num_;
+
+    // log format: 3 numbers seperated by " ", e.g. "15 24 32"
+    // 1st: thread pool schedule average cost (ms)
+    // 2nd: user task average cost (ms)
+    // 3rd: total task count since last ProfilingLog called
+    std::string ProfilingLog() {
+        int64_t schedule_cost_sum;
+        int64_t schedule_count;
+        int64_t task_cost_sum;
+        int64_t task_count;
+        {
+            MutexLock lock(&mutex_);
+            schedule_cost_sum = schedule_cost_sum_;
+            schedule_cost_sum_ = 0;
+            schedule_count = schedule_count_;
+            schedule_count_ = 0;
+            task_cost_sum = task_cost_sum_;
+            task_cost_sum_ = 0;
+            task_count = task_count_;
+            task_count_ = 0;
         }
-        task_delay_ = 0;
-        task_num_ = 0;
-        return ret;
+        std::stringstream ss;
+        ss << (schedule_count == 0 ? 0 : schedule_cost_sum / schedule_count / 1000)
+            << " " << (task_count == 0 ? 0 : task_cost_sum / task_count / 1000)
+            << " " << task_count;
+        return ss.str();
     }
+
 private:
     ThreadPool(const ThreadPool&);
     void operator=(const ThreadPool&);
@@ -149,7 +180,7 @@ private:
     void ThreadProc() {
         while (true) {
             Task task;
-            MutexLock lock(&mutex_, "ThreadProc", kDebugCheckTime);
+            MutexLock lock(&mutex_, "ThreadProc");
             while (time_queue_.empty() && queue_.empty() && !stop_) {
                 work_cv_.Wait("ThreadProcWait");
             }
@@ -160,17 +191,21 @@ private:
             if (!time_queue_.empty()) {
                 int64_t now_time = timer::get_micros();
                 BGItem bg_item = time_queue_.top();
-                int64_t wait_time = bg_item.exe_time / 1000 - now_time / 1000;
+                int64_t wait_time = (bg_item.exe_time - now_time) / 1000; // in ms
                 if (wait_time <= 0) {
                     time_queue_.pop();
                     BGMap::iterator it = latest_.find(bg_item.id);
                     if (it != latest_.end() && it->second.exe_time == bg_item.exe_time) {
-                        task = bg_item.callback;
+                        schedule_cost_sum_ += now_time - bg_item.exe_time;
+                        schedule_count_++;
+                        task = bg_item.task;
                         latest_.erase(it);
                         running_task_id_ = bg_item.id;
                         mutex_.Unlock();
                         task();
-                        mutex_.Lock("ThreadProcRelock", kDebugCheckTime);
+                        task_cost_sum_ += timer::get_micros() - now_time;
+                        task_count_++;
+                        mutex_.Lock("ThreadProcRelock");
                         running_task_id_ = 0;
                     }
                     continue;
@@ -181,15 +216,19 @@ private:
             }
             // Normal task;
             if (!queue_.empty()) {
-                BGItem bg_item = queue_.front();
+                task = queue_.front().task;
+                int64_t exe_time = queue_.front().exe_time;
                 queue_.pop_front();
                 --pending_num_;
-                int64_t delay_time = timer::get_micros() - bg_item.exe_time;
-                task_delay_ += delay_time;
-                task_num_++;
+                int64_t start_time = timer::get_micros();
+                schedule_cost_sum_ += start_time - exe_time;
+                schedule_count_++;
                 mutex_.Unlock();
-                bg_item.callback();
-                mutex_.Lock("ThreadProcRelock2", kDebugCheckTime);
+                task();
+                int64_t finish_time = timer::get_micros();
+                task_cost_sum_ += finish_time - start_time;
+                task_count_++;
+                mutex_.Lock("ThreadProcRelock2");
             }
         }
     }
@@ -198,8 +237,7 @@ private:
     struct BGItem {
         int64_t id;
         int64_t exe_time;
-        Task callback;
-        bool canceled;
+        Task task;
         bool operator<(const BGItem& item) const {
             if (exe_time != item.exe_time) {
                 return exe_time > item.exe_time;
@@ -207,6 +245,10 @@ private:
                 return id > item.id;
             }
         }
+
+        BGItem() {}
+        BGItem(int64_t id_t, int64_t exe_time_t, const Task& task_t)
+            : id(id_t), exe_time(exe_time_t), task(task_t) {}
     };
     typedef std::priority_queue<BGItem> BGQueue;
     typedef std::map<int64_t, BGItem> BGMap;
@@ -224,8 +266,11 @@ private:
     int64_t last_task_id_;
     int64_t running_task_id_;
 
-    int64_t task_delay_;
-    int32_t task_num_;
+    // for profiling
+    int64_t schedule_cost_sum_;
+    int64_t schedule_count_;
+    int64_t task_cost_sum_;
+    int64_t task_count_;
 };
 
 } // namespace common
