@@ -15,6 +15,7 @@
 #include <boost/function.hpp>
 #include "mutex.h"
 #include "timer.h"
+#include "logging.h"
 
 namespace baidu {
 namespace common {
@@ -46,6 +47,11 @@ public:
         if (tids_.size()) {
             return false;
         }
+        /// It's a ticky here. Call LOG just to make sure g_logger
+        /// is uninitialized before thread pool, so g_logger is sure
+        /// to be deconstructed after thread pool. So when destroy
+        /// this thread pool, threads can safely write on-going logs out.
+        LOG(INFO, "Init thread pool");
         stop_ = false;
         for (int i = 0; i < threads_num_; i++) {
             pthread_t tid;
