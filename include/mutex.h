@@ -16,7 +16,7 @@
 namespace baidu {
 namespace common {
 
-#define MUTEX_DEBUG
+// #define MUTEX_DEBUG
 
 // A Mutex represents an exclusive lock.
 class Mutex {
@@ -51,9 +51,9 @@ public:
     }
     // Crash if this thread does not hold this mutex.
     void AssertHeld() {
-         if(0 == pthread_equal(owner_, pthread_self())) {
-            abort();
-         }
+        if(0 == pthread_equal(owner_, pthread_self())) {
+           abort();
+        }
     }
 private:
     void AfterLock(const char* msg, int64_t msg_threshold) {
