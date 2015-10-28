@@ -1,0 +1,2 @@
+# install path
+PREFIX=./output
