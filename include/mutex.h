@@ -64,6 +64,8 @@ private:
             lock_time_ = timer::get_micros();
         }
         #endif
+        (void)msg;
+        (void)msg_threshold;
         owner_ = pthread_self();
     }
     void BeforeUnlock() {
