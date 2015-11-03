@@ -52,7 +52,7 @@ public:
     // Crash if this thread does not hold this mutex.
     void AssertHeld() {
         if(0 == pthread_equal(owner_, pthread_self())) {
-           abort();
+            abort();
         }
     }
 private:
