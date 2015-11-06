@@ -214,6 +214,12 @@ void Log(int level, const char* fmt, ...) {
     }
 }
 
+LogStream::LogStream(int level) : level_(level) {}
+
+LogStream::~LogStream() {
+    Log(level_, "%s", oss_.str().c_str());
+}
+
 } // namespace common
 } // namespace baidu
 

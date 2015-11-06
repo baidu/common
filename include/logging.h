@@ -7,6 +7,8 @@
 #ifndef  BAIDU_COMMON_LOGGING_H_
 #define  BAIDU_COMMON_LOGGING_H_
 
+#include <sstream>
+
 namespace baidu {
 namespace common {
 
@@ -23,6 +25,20 @@ bool SetWarningFile(const char* path, bool append = false);
 
 void Log(int level, const char* fmt, ...);
 
+class LogStream {
+public:
+    LogStream(int level);
+    template<class T>
+    LogStream& operator<<(const T& t) {
+        oss_ << t;
+        return *this;
+    }
+    ~LogStream();
+private:
+    int level_;
+    std::ostringstream oss_;
+};
+
 } // namespace common
 
 using common::DEBUG;
@@ -33,6 +49,7 @@ using common::FATAL;
 } // namespace baidu
 
 #define LOG(level, fmt, args...) ::baidu::common::Log(level, "[%s:%d] "fmt, __FILE__, __LINE__, ##args)
+#define SLOG(level) ::baidu::common::LogStream(level)
 
 #endif  // BAIDU_COMMON_LOGGING_H_
 

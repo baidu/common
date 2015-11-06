@@ -5,9 +5,11 @@
 INCLUDEPATH=-I../include/ -Igtest/include
 LDFLAGS=-L../ -Lgtest/lib -lgtest -lcommon -lpthread
 
-TARGETS= test_thread_pool perf_test_thread_pool perf_test_counter
+TARGETS= test_logging test_thread_pool perf_test_thread_pool perf_test_counter
 all: $(TARGETS)
 
+test_logging: test_logging.cc ../include/logging.h ../src/logging.cc
+	g++ -g $(INCLUDEPATH) $< -o $@ $(LDFLAGS)
 test_thread_pool: test_thread_pool.cc
 	g++ -g $(INCLUDEPATH) $< -o $@ $(LDFLAGS) 
 
