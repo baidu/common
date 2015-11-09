@@ -12,7 +12,8 @@ int main(int argc, char* argv[]) {
     int test_time = 88;
     const char* char_pointer = "char*";
     std::string string = "std;";
-    SLOG(baidu::INFO) << 88 << " " << char_pointer << " " << string;
+    LOGS(baidu::INFO) << 88 << " " << char_pointer << " " << string;
+    LOGS(baidu::INFO) << 88 << " " << char_pointer << " " << string;
 
     return 0;
 }
