@@ -128,7 +128,10 @@ bool SetLogFile(const char* path, bool append) {
 }
 
 void Logv(int log_level, const char* format, va_list ap) {
-    const uint64_t thread_id = syscall(__NR_gettid);
+    static __thread uint64_t thread_id = 0;
+    if (thread_id == 0) {
+        thread_id = syscall(__NR_gettid);
+    }
 
     // We try twice: the first time with a fixed-size stack allocated buffer,
     // and the second time with a much larger dynamically allocated buffer.
