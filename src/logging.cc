@@ -49,8 +49,9 @@ public:
         // close fd
     }
     void WriteLog(int log_level, const char* buffer, int32_t len) {
+        std::string* log_str = new std::string(buffer, len);
         MutexLock lock(&mu_);
-        buffer_queue_.push(make_pair(log_level, new std::string(buffer, len)));
+        buffer_queue_.push(make_pair(log_level, log_str));
         jobs_.Signal();
     }
     void AsyncWriter() {
