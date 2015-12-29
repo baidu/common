@@ -21,6 +21,6 @@ install: $(LIB) $(INC)
 	@mkdir -p $(PREFIX)
 	@mkdir -p $(PREFIX)/lib
 	@cp $(LIB) $(PREFIX)/lib
-	@mkdir -p $(PREFIX)/include
-	@cp  $(INC)/* $(PREFIX)/include
+	@mkdir -p $(PREFIX)/include/common
+	@cp  $(INC)/* $(PREFIX)/include/common
 	@echo 'Install succeed, target directory is "'$(PREFIX)'".'
