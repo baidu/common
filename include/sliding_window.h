@@ -37,7 +37,7 @@ public:
     int32_t Size() const {
         return item_count_;
     }
-    int32_t GetBaseOffset const {
+    int32_t GetBaseOffset() const {
         return base_offset_;
     }
     void GetFragments(std::vector<std::pair<int32_t, Item> >* fragments) {
