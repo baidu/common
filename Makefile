@@ -3,6 +3,7 @@ include config.mk
 LIB=libcommon.a
 INC=include
 INCLUDE_PATH=-Iinclude/
+CXXFLAGS=-fPIC -Wall -g
 COMMON_OBJ = $(patsubst %.cc, %.o, $(wildcard src/*.cc))
 
 .PHONY: install clean
