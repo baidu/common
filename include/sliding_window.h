@@ -5,7 +5,7 @@
 // Author: yanshiguang02@baidu.com
 
 #ifndef  BAIDU_COMMON_SLIDING_WINDOW_H_
-#define  BAIUD_COMMON_SLIDING_WINDOW_H_
+#define  BAIDU_COMMON_SLIDING_WINDOW_H_
 
 #include <stdint.h>
 #include <vector>
@@ -110,6 +110,6 @@ private:
 } // namespace common
 } // namespace baidu
 
-#endif  // COMMON_SLIDING_WINDOW_H_
+#endif  // BAIDU_COMMON_SLIDING_WINDOW_H_
 
 /* vim: set expandtab ts=4 sw=4 sts=4 tw=100: */
