@@ -50,6 +50,9 @@ public:
         msg2_(msg2) {
         start_ = get_micros();
     }
+    int64_t TimeUsed() const {
+        return get_micros() - start_;
+    }
     ~AutoTimer() {
         long end = get_micros();
         if (end - start_ > timeout_ * 1000) {
