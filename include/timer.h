@@ -44,7 +44,7 @@ static inline int32_t now_time_str(char* buf, int32_t len) {
 
 class AutoTimer {
 public:
-    AutoTimer(double timeout_ms, const char* msg1, const char* msg2 = NULL)
+    AutoTimer(double timeout_ms = -1, const char* msg1 = NULL, const char* msg2 = NULL)
       : timeout_(timeout_ms),
         msg1_(msg1),
         msg2_(msg2) {
@@ -54,6 +54,7 @@ public:
         return get_micros() - start_;
     }
     ~AutoTimer() {
+        if (timeout_ == -1) return;
         long end = get_micros();
         if (end - start_ > timeout_ * 1000) {
             double t = (end - start_) / 1000.0;
