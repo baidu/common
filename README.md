@@ -1,2 +1,2 @@
 # Common
-Common library
+Baidu common library
