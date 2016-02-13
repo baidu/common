@@ -10,6 +10,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <pthread.h>
+#include <string.h>
 #include <sys/time.h>
 #include "timer.h"
 
@@ -18,15 +19,26 @@ namespace common {
 
 // #define MUTEX_DEBUG
 
+static void PthreadCall(const char* label, int result) {
+    if (result != 0) {
+        fprintf(stderr, "pthread %s: %s\n", label, strerror(result));
+        abort();
+    }
+}
+
 // A Mutex represents an exclusive lock.
 class Mutex {
 public:
     Mutex()
         : owner_(0), msg_(NULL), msg_threshold_(0), lock_time_(0) {
-        pthread_mutex_init(&mu_, NULL);
+        pthread_mutexattr_t attr;
+        PthreadCall("init mutexattr", pthread_mutexattr_init(&attr));
+        PthreadCall("set mutexattr", pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_ERRORCHECK));
+        PthreadCall("init mutex", pthread_mutex_init(&mu_, &attr));
+        PthreadCall("destroy mutexattr", pthread_mutexattr_destroy(&attr));
     }
     ~Mutex() {
-        pthread_mutex_destroy(&mu_);
+        PthreadCall("destroy mutex", pthread_mutex_destroy(&mu_));
     }
     // Lock the mutex.
     // Will deadlock if the mutex is already locked by this thread.
@@ -34,7 +46,7 @@ public:
         #ifdef MUTEX_DEBUG
         int64_t s = (msg) ? timer::get_micros() : 0;
         #endif
-        pthread_mutex_lock(&mu_);
+        PthreadCall("mutex lock", pthread_mutex_lock(&mu_));
         AfterLock(msg, msg_threshold);
         #ifdef MUTEX_DEBUG
         if (msg && lock_time_ - s > msg_threshold) {
@@ -43,15 +55,15 @@ public:
             printf("%s [Mutex] %s wait lock %.3f ms\n", buf, msg, (lock_time_ -s) / 1000.0);
         }
         #endif
-    } 
+    }
     // Unlock the mutex.
     void Unlock() {
         BeforeUnlock();
-        pthread_mutex_unlock(&mu_);
+        PthreadCall("mutex unlock", pthread_mutex_unlock(&mu_));
     }
     // Crash if this thread does not hold this mutex.
     void AssertHeld() {
-        if(0 == pthread_equal(owner_, pthread_self())) {
+        if (0 == pthread_equal(owner_, pthread_self())) {
             abort();
         }
     }
@@ -111,15 +123,15 @@ private:
 class CondVar {
 public:
     explicit CondVar(Mutex* mu) : mu_(mu) {
-        pthread_cond_init(&cond_, NULL);
+        PthreadCall("init condvar", pthread_cond_init(&cond_, NULL));
     }
     ~CondVar() {
-        pthread_cond_destroy(&cond_);
+        PthreadCall("destroy condvar", pthread_cond_destroy(&cond_));
     }
     void Wait(const char* msg = NULL) {
         int64_t msg_threshold = mu_->msg_threshold_;
         mu_->BeforeUnlock();
-        pthread_cond_wait(&cond_, &mu_->mu_);
+        PthreadCall("condvar wait", pthread_cond_wait(&cond_, &mu_->mu_));
         mu_->AfterLock(msg, msg_threshold);
     }
     // Time wait in ms, return true iff signalled
@@ -137,10 +149,10 @@ public:
         return (ret == 0);
     }
     void Signal() {
-        pthread_cond_signal(&cond_);
+        PthreadCall("signal", pthread_cond_signal(&cond_));
     }
     void Broadcast() {
-        pthread_cond_broadcast(&cond_);
+        PthreadCall("broadcast", pthread_cond_broadcast(&cond_));
     }
 private:
     CondVar(const CondVar&);
