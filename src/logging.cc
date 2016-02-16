@@ -26,10 +26,30 @@ namespace baidu {
 namespace common {
 
 int g_log_level = INFO;
-uint64_t g_log_size = 0;
+int64_t g_log_size = 0;
 FILE* g_log_file = stdout;
 std::string g_log_file_name;
 FILE* g_warning_file = NULL;
+
+std::string GetLogName() {
+    char buf[30];
+    struct timeval tv;
+    gettimeofday(&tv, NULL);
+    const time_t seconds = tv.tv_sec;
+    struct tm t;
+    localtime_r(&seconds, &t);
+    snprintf(buf, 30,
+        "%02d-%02d.%02d:%02d:%02d.%06d",
+        t.tm_mon + 1,
+        t.tm_mday,
+        t.tm_hour,
+        t.tm_min,
+        t.tm_sec,
+        static_cast<int>(tv.tv_usec));
+    std::string log_name(g_log_file_name + ".");
+    log_name.append(buf);
+    return log_name;
+}
 
 void SetLogLevel(int level) {
     g_log_level = level;
@@ -64,9 +84,7 @@ public:
                 if (g_log_size && size_ > g_log_size) {
                     if (g_log_file != stdout) {
                         fclose(g_log_file);
-                        char buf [50];
-                        timer::now_time_str(buf, 50);
-                        std::string new_log_name((g_log_file_name + ".").append(buf));
+                        std::string new_log_name = GetLogName();
                         g_log_file = fopen(new_log_name.c_str(), "ab");
                         remove(g_log_file_name.c_str());
                         symlink(new_log_name.c_str(), g_log_file_name.c_str());
@@ -97,7 +115,6 @@ public:
             done_.Broadcast();
             jobs_.Wait();
         }
-
     }
     void Flush() {
         MutexLock lock(&mu_);
@@ -133,9 +150,7 @@ bool SetWarningFile(const char* path, bool append) {
 bool SetLogFile(const char* path, bool append) {
     const char* mode = append ? "ab" : "wb";
     g_log_file_name.assign(path);
-    char buf [50];
-    timer::now_time_str(buf, 50);
-    std::string current_log_name((g_log_file_name + ".").append(buf));
+    std::string current_log_name = GetLogName();
     FILE* fp = fopen(current_log_name.c_str(), mode);
     if (fp == NULL) {
         g_log_file = stdout;
@@ -145,12 +160,17 @@ bool SetLogFile(const char* path, bool append) {
         fclose(g_log_file);
     }
     g_log_file = fp;
+    remove(g_log_file_name.c_str());
     symlink(current_log_name.c_str(), g_log_file_name.c_str());
     return true;
 }
 
-void SetLogSize(int size) {
-    g_log_size = size << 20;
+bool SetLogSize(int size) {
+    if (size < 0) {
+        return false;
+    }
+    g_log_size = static_cast<int64_t>(size) << 20;
+    return true;
 }
 
 void Logv(int log_level, const char* format, va_list ap) {

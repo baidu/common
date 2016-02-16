@@ -20,7 +20,7 @@ enum LogLevel {
 void SetLogLevel(int level);
 bool SetLogFile(const char* path, bool append = false);
 bool SetWarningFile(const char* path, bool append = false);
-void SetLogSize(int size); // in MB
+bool SetLogSize(int size); // in MB
 
 void Log(int level, const char* fmt, ...);
 
