@@ -16,17 +16,19 @@
 #include <string>
 #include <syscall.h>
 #include <sys/time.h>
-#include <time.h>
 #include <unistd.h>
 
 #include "mutex.h"
 #include "thread.h"
+#include "timer.h"
 
 namespace baidu {
 namespace common {
 
 int g_log_level = INFO;
+uint64_t g_log_size = 0;
 FILE* g_log_file = stdout;
+std::string g_log_file_name;
 FILE* g_warning_file = NULL;
 
 void SetLogLevel(int level) {
@@ -36,7 +38,7 @@ void SetLogLevel(int level) {
 class AsyncLogger {
 public:
     AsyncLogger()
-      : jobs_(&mu_), done_(&mu_), stopped_(false) {
+      : jobs_(&mu_), done_(&mu_), stopped_(false), size_(0) {
         thread_.Start(boost::bind(&AsyncLogger::AsyncWriter, this));
     }
     ~AsyncLogger() {
@@ -59,6 +61,18 @@ public:
             int loglen = 0;
             int wflen = 0;
             while (!buffer_queue_.empty()) {
+                if (g_log_size && size_ > g_log_size) {
+                    if (g_log_file != stdout) {
+                        fclose(g_log_file);
+                        char buf [50];
+                        timer::now_time_str(buf, 50);
+                        std::string new_log_name((g_log_file_name + ".").append(buf));
+                        g_log_file = fopen(new_log_name.c_str(), "ab");
+                        remove(g_log_file_name.c_str());
+                        symlink(new_log_name.c_str(), g_log_file_name.c_str());
+                    }
+                    size_ = 0;
+                }
                 int log_level = buffer_queue_.front().first;
                 std::string* str = buffer_queue_.front().second;
                 buffer_queue_.pop();
@@ -70,6 +84,7 @@ public:
                         fwrite(str->data(), 1, str->size(), g_warning_file);
                         wflen += str->size();
                     }
+                    if (g_log_size) size_ += str->length();
                 }
                 delete str;
                 mu_.Lock();
@@ -82,6 +97,7 @@ public:
             done_.Broadcast();
             jobs_.Wait();
         }
+
     }
     void Flush() {
         MutexLock lock(&mu_);
@@ -94,6 +110,7 @@ private:
     CondVar jobs_;
     CondVar done_;
     bool stopped_;
+    int64_t size_;
     Thread thread_;
     std::queue<std::pair<int, std::string*> > buffer_queue_;
 };
@@ -115,7 +132,11 @@ bool SetWarningFile(const char* path, bool append) {
 
 bool SetLogFile(const char* path, bool append) {
     const char* mode = append ? "ab" : "wb";
-    FILE* fp = fopen(path, mode);
+    g_log_file_name.assign(path);
+    char buf [50];
+    timer::now_time_str(buf, 50);
+    std::string current_log_name((g_log_file_name + ".").append(buf));
+    FILE* fp = fopen(current_log_name.c_str(), mode);
     if (fp == NULL) {
         g_log_file = stdout;
         return false;
@@ -124,7 +145,12 @@ bool SetLogFile(const char* path, bool append) {
         fclose(g_log_file);
     }
     g_log_file = fp;
+    symlink(current_log_name.c_str(), g_log_file_name.c_str());
     return true;
+}
+
+void SetLogSize(int size) {
+    g_log_size = size << 20;
 }
 
 void Logv(int log_level, const char* format, va_list ap) {
@@ -146,20 +172,9 @@ void Logv(int log_level, const char* format, va_list ap) {
         char* p = base;
         char* limit = base + bufsize;
 
-        struct timeval now_tv;
-        gettimeofday(&now_tv, NULL);
-        const time_t seconds = now_tv.tv_sec;
-        struct tm t;
-        localtime_r(&seconds, &t);
-        p += snprintf(p, limit - p,
-                "%02d/%02d %02d:%02d:%02d.%06d %lld ",
-                t.tm_mon + 1,
-                t.tm_mday,
-                t.tm_hour,
-                t.tm_min,
-                t.tm_sec,
-                static_cast<int>(now_tv.tv_usec),
-                static_cast<long long unsigned int>(thread_id));
+        int32_t rlen = timer::now_time_str(p, limit - p);
+        p += rlen;
+        p += snprintf(p, limit - p, " %lld ", static_cast<long long unsigned int>(thread_id));
 
         // Print the message
         if (p < limit) {

@@ -31,7 +31,7 @@ static inline int32_t now_time_str(char* buf, int32_t len) {
     struct tm t;
     localtime_r(&seconds, &t);
     return snprintf(buf, len,
-            "%02d/%02d %02d:%02d:%02d.%06d",
+            "%02d-%02d.%02d:%02d:%02d.%06d",
             t.tm_mon + 1,
             t.tm_mday,
             t.tm_hour,
