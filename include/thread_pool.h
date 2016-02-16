@@ -85,18 +85,21 @@ public:
     // Add a task to the thread pool.
     void AddTask(const Task& task) {
         MutexLock lock(&mutex_, "AddTask");
+        if (stop_) return;
         queue_.push_back(BGItem(0, timer::get_micros(), task));
         ++pending_num_;
         work_cv_.Signal();
     }
     void AddPriorityTask(const Task& task) {
         MutexLock lock(&mutex_);
+        if (stop_) return;
         queue_.push_front(BGItem(0, timer::get_micros(), task));
         ++pending_num_;
         work_cv_.Signal();
     }
     int64_t DelayTask(int64_t delay, const Task& task) {
         MutexLock lock(&mutex_);
+        if (stop_) return 0;
         int64_t now_time = timer::get_micros();
         int64_t exe_time = now_time + delay * 1000;
         BGItem bg_item(++last_task_id_, exe_time, task);
