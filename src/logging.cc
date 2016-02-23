@@ -16,18 +16,57 @@
 #include <string>
 #include <syscall.h>
 #include <sys/time.h>
-#include <time.h>
 #include <unistd.h>
 
 #include "mutex.h"
 #include "thread.h"
+#include "timer.h"
 
 namespace baidu {
 namespace common {
 
 int g_log_level = INFO;
+int64_t g_log_size = 0;
 FILE* g_log_file = stdout;
+std::string g_log_file_name;
 FILE* g_warning_file = NULL;
+
+bool GetNewLog(bool append) {
+    char buf[30];
+    struct timeval tv;
+    gettimeofday(&tv, NULL);
+    const time_t seconds = tv.tv_sec;
+    struct tm t;
+    localtime_r(&seconds, &t);
+    snprintf(buf, 30,
+        "%02d-%02d.%02d:%02d:%02d.%06d",
+        t.tm_mon + 1,
+        t.tm_mday,
+        t.tm_hour,
+        t.tm_min,
+        t.tm_sec,
+        static_cast<int>(tv.tv_usec));
+    std::string full_path(g_log_file_name + ".");
+    full_path.append(buf);
+    size_t idx = full_path.rfind('/');
+    if (idx == std::string::npos) {
+        idx = 0;
+    } else {
+        idx += 1;
+    }
+    const char* mode = append ? "ab" : "wb";
+    FILE* fp = fopen(full_path.c_str(), mode);
+    if (fp == NULL) {
+        return false;
+    }
+    if (g_log_file != stdout) {
+        fclose(g_log_file);
+    }
+    g_log_file = fp;
+    remove(g_log_file_name.c_str());
+    symlink(full_path.substr(idx).c_str(), g_log_file_name.c_str());
+    return true;
+}
 
 void SetLogLevel(int level) {
     g_log_level = level;
@@ -36,7 +75,7 @@ void SetLogLevel(int level) {
 class AsyncLogger {
 public:
     AsyncLogger()
-      : jobs_(&mu_), done_(&mu_), stopped_(false) {
+      : jobs_(&mu_), done_(&mu_), stopped_(false), size_(0) {
         thread_.Start(boost::bind(&AsyncLogger::AsyncWriter, this));
     }
     ~AsyncLogger() {
@@ -63,6 +102,10 @@ public:
                 int log_level = buffer_queue_.front().first;
                 std::string* str = buffer_queue_.front().second;
                 buffer_queue_.pop();
+                if (g_log_file != stdout && g_log_size && size_ + str->length() > g_log_size) {
+                    GetNewLog(false);
+                    size_ = 0;
+                }
                 mu_.Unlock();
                 if (str && !str->empty()) {
                     fwrite(str->data(), 1, str->size(), g_log_file);
@@ -71,6 +114,7 @@ public:
                         fwrite(str->data(), 1, str->size(), g_warning_file);
                         wflen += str->size();
                     }
+                    if (g_log_size) size_ += str->length();
                 }
                 delete str;
                 mu_.Lock();
@@ -95,6 +139,7 @@ private:
     CondVar jobs_;
     CondVar done_;
     bool stopped_;
+    int64_t size_;
     Thread thread_;
     std::queue<std::pair<int, std::string*> > buffer_queue_;
 };
@@ -115,16 +160,15 @@ bool SetWarningFile(const char* path, bool append) {
 }
 
 bool SetLogFile(const char* path, bool append) {
-    const char* mode = append ? "ab" : "wb";
-    FILE* fp = fopen(path, mode);
-    if (fp == NULL) {
-        g_log_file = stdout;
+    g_log_file_name.assign(path);
+    return GetNewLog(append);
+}
+
+bool SetLogSize(int size) {
+    if (size < 0) {
         return false;
     }
-    if (g_log_file != stdout) {
-        fclose(g_log_file);
-    }
-    g_log_file = fp;
+    g_log_size = static_cast<int64_t>(size) << 20;
     return true;
 }
 
@@ -150,20 +194,9 @@ void Logv(int log_level, const char* format, va_list ap) {
         char* p = base;
         char* limit = base + bufsize;
 
-        struct timeval now_tv;
-        gettimeofday(&now_tv, NULL);
-        const time_t seconds = now_tv.tv_sec;
-        struct tm t;
-        localtime_r(&seconds, &t);
-        p += snprintf(p, limit - p,
-                "%02d/%02d %02d:%02d:%02d.%06d %lld ",
-                t.tm_mon + 1,
-                t.tm_mday,
-                t.tm_hour,
-                t.tm_min,
-                t.tm_sec,
-                static_cast<int>(now_tv.tv_usec),
-                static_cast<long long unsigned int>(thread_id));
+        int32_t rlen = timer::now_time_str(p, limit - p);
+        p += rlen;
+        p += snprintf(p, limit - p, " %lld ", static_cast<long long unsigned int>(thread_id));
 
         // Print the message
         if (p < limit) {
