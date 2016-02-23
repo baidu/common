@@ -31,7 +31,7 @@ FILE* g_log_file = stdout;
 std::string g_log_file_name;
 FILE* g_warning_file = NULL;
 
-std::string GetLogName() {
+bool GetNewLog(bool append) {
     char buf[30];
     struct timeval tv;
     gettimeofday(&tv, NULL);
@@ -46,9 +46,26 @@ std::string GetLogName() {
         t.tm_min,
         t.tm_sec,
         static_cast<int>(tv.tv_usec));
-    std::string log_name(g_log_file_name + ".");
-    log_name.append(buf);
-    return log_name;
+    std::string full_path(g_log_file_name + ".");
+    full_path.append(buf);
+    size_t idx = full_path.rfind('/');
+    if (idx == std::string::npos) {
+        idx = 0;
+    } else {
+        idx += 1;
+    }
+    const char* mode = append ? "ab" : "wb";
+    FILE* fp = fopen(full_path.c_str(), mode);
+    if (fp == NULL) {
+        return false;
+    }
+    if (g_log_file != stdout) {
+        fclose(g_log_file);
+    }
+    g_log_file = fp;
+    remove(g_log_file_name.c_str());
+    symlink(full_path.substr(idx).c_str(), g_log_file_name.c_str());
+    return true;
 }
 
 void SetLogLevel(int level) {
@@ -81,19 +98,13 @@ public:
             int loglen = 0;
             int wflen = 0;
             while (!buffer_queue_.empty()) {
-                if (g_log_size && size_ > g_log_size) {
-                    if (g_log_file != stdout) {
-                        fclose(g_log_file);
-                        std::string new_log_name = GetLogName();
-                        g_log_file = fopen(new_log_name.c_str(), "ab");
-                        remove(g_log_file_name.c_str());
-                        symlink(new_log_name.c_str(), g_log_file_name.c_str());
-                    }
-                    size_ = 0;
-                }
                 int log_level = buffer_queue_.front().first;
                 std::string* str = buffer_queue_.front().second;
                 buffer_queue_.pop();
+                if (g_log_file != stdout && g_log_size && size_ + str->length() > g_log_size) {
+                    GetNewLog(false);
+                    size_ = 0;
+                }
                 mu_.Unlock();
                 if (str && !str->empty()) {
                     fwrite(str->data(), 1, str->size(), g_log_file);
@@ -148,21 +159,8 @@ bool SetWarningFile(const char* path, bool append) {
 }
 
 bool SetLogFile(const char* path, bool append) {
-    const char* mode = append ? "ab" : "wb";
     g_log_file_name.assign(path);
-    std::string current_log_name = GetLogName();
-    FILE* fp = fopen(current_log_name.c_str(), mode);
-    if (fp == NULL) {
-        g_log_file = stdout;
-        return false;
-    }
-    if (g_log_file != stdout) {
-        fclose(g_log_file);
-    }
-    g_log_file = fp;
-    remove(g_log_file_name.c_str());
-    symlink(current_log_name.c_str(), g_log_file_name.c_str());
-    return true;
+    return GetNewLog(append);
 }
 
 bool SetLogSize(int size) {
