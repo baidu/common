@@ -104,7 +104,8 @@ public:
                 int log_level = buffer_queue_.front().first;
                 std::string* str = buffer_queue_.front().second;
                 buffer_queue_.pop();
-                if (g_log_file != stdout && g_log_size && size_ + str->length() > g_log_size) {
+                if (g_log_file != stdout && g_log_size &&
+                        static_cast<int64_t>(size_ + str->length()) > g_log_size) {
                     GetNewLog(false);
                     size_ = 0;
                 }
