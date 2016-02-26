@@ -8,8 +8,6 @@
 
 #include <assert.h>
 #include <boost/bind.hpp>
-#include <boost/shared_ptr.hpp>
-#include <boost/weak_ptr.hpp>
 #include <queue>
 #include <stdarg.h>
 #include <stdint.h>
@@ -147,7 +145,7 @@ private:
     std::queue<std::pair<int, std::string*> > buffer_queue_;
 };
 
-boost::shared_ptr<AsyncLogger> g_logger(new AsyncLogger);
+AsyncLogger g_logger;
 
 bool SetWarningFile(const char* path, bool append) {
     const char* mode = append ? "ab" : "wb";
@@ -179,11 +177,6 @@ void Logv(int log_level, const char* format, va_list ap) {
     static __thread uint64_t thread_id = 0;
     if (thread_id == 0) {
         thread_id = syscall(__NR_gettid);
-    }
-    static __thread boost::weak_ptr<AsyncLogger> wk_logger = g_logger;
-    boost::shared_ptr<AsyncLogger> logger = wk_logger.lock();
-    if (!logger) {
-        return;
     }
 
     // We try twice: the first time with a fixed-size stack allocated buffer,
@@ -235,9 +228,9 @@ void Logv(int log_level, const char* format, va_list ap) {
         //    fwrite(base, 1, p - base, g_warning_file);
         //    fflush(g_warning_file);
         //}
-        logger->WriteLog(log_level, base, p - base);
+        g_logger.WriteLog(log_level, base, p - base);
         if (log_level == FATAL) {
-            logger->Flush();
+            g_logger.Flush();
         }
         if (base != buffer) {
             delete[] base;
