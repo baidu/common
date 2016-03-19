@@ -16,7 +16,7 @@ namespace common {
 class Counter {
     volatile int64_t val_;
 public:
-    Counter() : val_(0) {}
+    Counter(int64_t val = 0) : val_(val) {}
     int64_t Add(int64_t v) {
         return atomic_add64(&val_, v) + v;
     }
