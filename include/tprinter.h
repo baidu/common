@@ -43,7 +43,7 @@ public:
     static string RemoveSubString(const string& input, const string& substr);
 
 private:
-    static const uint32_t kMaxColWidth = 50;
+    static const uint32_t kMaxColWidth = 60;
     size_t _cols;
     std::vector<int> _col_width;
     Table _table;
