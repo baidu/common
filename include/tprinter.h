@@ -24,7 +24,7 @@ public:
 
     TPrinter();
     explicit TPrinter(int cols);
-    TPrinter(int cols, int with);
+    TPrinter(int cols, int width);
     ~TPrinter();
 
     bool AddRow(const std::vector<string>& cols);
