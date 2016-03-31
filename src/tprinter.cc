@@ -16,13 +16,27 @@
 namespace baidu {
 namespace common {
 
-TPrinter::TPrinter() : _cols(0) {
+TPrinter::TPrinter() : 
+    kMaxColWidth(50),
+    _cols(0) {
 }
 
-TPrinter::TPrinter(int cols) : _cols(cols) {
+TPrinter::TPrinter(int cols) : 
+    kMaxColWidth(50),
+    _cols(cols) {
     if (cols > 0) {
         _col_width.resize(cols, 0);
     }
+}
+
+
+TPrinter::TPrinter(int cols, int width) :
+    kMaxColWidth(width),
+    _cols(cols) {
+        assert(width >= 0);
+        if (cols > 0) {
+            _col_width.resize(cols, 0);
+        }
 }
 
 TPrinter::~TPrinter() {}

@@ -23,7 +23,8 @@ public:
     typedef std::vector<Line> Table;
 
     TPrinter();
-    TPrinter(int cols);
+    explicit TPrinter(int cols);
+    TPrinter(int cols, int with);
     ~TPrinter();
 
     bool AddRow(const std::vector<string>& cols);
@@ -43,7 +44,7 @@ public:
     static string RemoveSubString(const string& input, const string& substr);
 
 private:
-    static const uint32_t kMaxColWidth = 60;
+    const uint32_t kMaxColWidth;
     size_t _cols;
     std::vector<int> _col_width;
     Table _table;
