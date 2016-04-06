@@ -12,6 +12,7 @@
 #include <sstream>
 
 #include "string_util.h"
+#include <assert.h>
 
 namespace baidu {
 namespace common {
