@@ -23,6 +23,7 @@ void SetLogLevel(int level);
 bool SetLogFile(const char* path, bool append = false);
 bool SetWarningFile(const char* path, bool append = false);
 bool SetLogSize(int size); // in MB
+bool SetLogCnt(int cnt);
 
 void Log(int level, const char* fmt, ...);
 

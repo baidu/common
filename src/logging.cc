@@ -27,9 +27,11 @@ namespace common {
 
 int g_log_level = INFO;
 int64_t g_log_size = 0;
+int32_t g_log_cnt = 1;
 FILE* g_log_file = stdout;
 std::string g_log_file_name;
 FILE* g_warning_file = NULL;
+std::queue<std::string> g_log_queue_;
 
 bool GetNewLog(bool append) {
     char buf[30];
@@ -65,6 +67,12 @@ bool GetNewLog(bool append) {
     g_log_file = fp;
     remove(g_log_file_name.c_str());
     symlink(full_path.substr(idx).c_str(), g_log_file_name.c_str());
+    g_log_queue_.push(full_path);
+    if (static_cast<int64_t>(g_log_queue_.size()) > g_log_cnt) {
+        std::string rmfile = g_log_queue_.front();
+        remove(rmfile.c_str());
+        g_log_queue_.pop();
+    }
     return true;
 }
 
@@ -170,6 +178,14 @@ bool SetLogSize(int size) {
         return false;
     }
     g_log_size = static_cast<int64_t>(size) << 20;
+    return true;
+}
+
+bool SetLogCnt(int cnt) {
+    if (cnt < 1) {
+        return false;
+    }
+    g_log_cnt = static_cast<int32_t>(cnt);
     return true;
 }
 
