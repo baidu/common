@@ -34,7 +34,7 @@ int32_t g_log_cnt = 3;
 FILE* g_log_file = stdout;
 std::string g_log_file_name;
 FILE* g_warning_file = NULL;
-std::queue<std::string> g_log_queue_;
+std::queue<std::string> g_log_queue;
 
 bool GetNewLog(bool append) {
     char buf[30];
@@ -70,11 +70,11 @@ bool GetNewLog(bool append) {
     g_log_file = fp;
     remove(g_log_file_name.c_str());
     symlink(full_path.substr(idx).c_str(), g_log_file_name.c_str());
-    g_log_queue_.push(full_path);
-    while (static_cast<int64_t>(g_log_queue_.size()) > g_log_cnt) {
-        std::string to_del = g_log_queue_.front();
+    g_log_queue.push(full_path);
+    while (static_cast<int64_t>(g_log_queue.size()) > g_log_cnt) {
+        std::string to_del = g_log_queue.front();
         remove(to_del.c_str());
-        g_log_queue_.pop();
+        g_log_queue.pop();
     }
     return true;
 }
@@ -201,15 +201,17 @@ bool RecoverHistory(const char* path) {
         closedir(dir_ptr);
         sort(loglist.begin(), loglist.end());
         for (std::vector<std::string>::iterator it = loglist.begin(); it != loglist.end(); it++) {
-            g_log_queue_.push(*it);
+            g_log_queue.push(*it);
         }
-        return 0;
+        return true;
     }
 }
 
 bool SetLogFile(const char* path, bool append) {
     g_log_file_name.assign(path);
-    RecoverHistory(path);
+    if (false == RecoverHistory(path)) {
+        return false;
+    }
     return GetNewLog(append);
 }
 
