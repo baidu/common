@@ -70,10 +70,10 @@ bool GetNewLog(bool append) {
     g_log_file = fp;
     remove(g_log_file_name.c_str());
     symlink(full_path.substr(idx).c_str(), g_log_file_name.c_str());
-    g_log_queue.push(full_path);
     if (0 == g_log_count) {
         return true;
     }
+    g_log_queue.push(full_path);
     while (static_cast<int64_t>(g_log_queue.size()) > g_log_count) {
         std::string to_del = g_log_queue.front();
         remove(to_del.c_str());
@@ -203,17 +203,15 @@ bool RecoverHistory(const char* path) {
     }
     closedir(dir_ptr);
     std::sort(loglist.begin(), loglist.end());
-    for (std::vector<std::string>::iterator it = loglist.begin(); it != loglist.end(); ++it) {
-        g_log_queue.push(*it);
+    for (size_t idx = g_log_count < static_cast<int32_t>(loglist.size()) ? loglist.size() - g_log_count : 0;
+            idx < loglist.size(); ++idx) {
+        g_log_queue.push(loglist[idx]);
     }
     return true;
 }
 
 bool SetLogFile(const char* path, bool append) {
     g_log_file_name.assign(path);
-    if (!RecoverHistory(path)) {
-        return false;
-    }
     return GetNewLog(append);
 }
 
@@ -226,10 +224,13 @@ bool SetLogSize(int size) {
 }
 
 bool SetLogCount(int count) {
-    if (count < 1) {
+    if (count < 0) {
         return false;
     }
     g_log_count = count;
+    if (!RecoverHistory(g_log_file_name.c_str())) {
+        return false;
+    }
     return true;
 }
 
