@@ -30,7 +30,7 @@ namespace common {
 
 int g_log_level = INFO;
 int64_t g_log_size = 0;
-int32_t g_log_cnt = 3;
+int32_t g_log_count = 3;
 FILE* g_log_file = stdout;
 std::string g_log_file_name;
 FILE* g_warning_file = NULL;
@@ -71,7 +71,7 @@ bool GetNewLog(bool append) {
     remove(g_log_file_name.c_str());
     symlink(full_path.substr(idx).c_str(), g_log_file_name.c_str());
     g_log_queue.push(full_path);
-    while (static_cast<int64_t>(g_log_queue.size()) > g_log_cnt) {
+    while (static_cast<int64_t>(g_log_queue.size()) > g_log_count) {
         std::string to_del = g_log_queue.front();
         remove(to_del.c_str());
         g_log_queue.pop();
@@ -209,7 +209,7 @@ bool RecoverHistory(const char* path) {
 
 bool SetLogFile(const char* path, bool append) {
     g_log_file_name.assign(path);
-    if (false == RecoverHistory(path)) {
+    if (!RecoverHistory(path)) {
         return false;
     }
     return GetNewLog(append);
@@ -223,11 +223,11 @@ bool SetLogSize(int size) {
     return true;
 }
 
-bool SetLogCnt(int cnt) {
-    if (cnt < 1) {
+bool SetLogCount(int count) {
+    if (count < 1) {
         return false;
     }
-    g_log_cnt = static_cast<int32_t>(cnt);
+    g_log_count = count;
     return true;
 }
 
