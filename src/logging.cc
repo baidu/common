@@ -203,9 +203,14 @@ bool RecoverHistory(const char* path) {
     }
     closedir(dir_ptr);
     std::sort(loglist.begin(), loglist.end());
-    for (size_t idx = g_log_count < static_cast<int32_t>(loglist.size()) ? loglist.size() - g_log_count : 0;
-            idx < loglist.size(); ++idx) {
+    for (std::vector<std::string>::iterator it = loglist.begin(); it != loglist.end();
+            ++it) {
         g_log_queue.push(loglist[idx]);
+    }
+    while (static_cast<int64_t>(g_log_queue.size()) > g_log_count) {
+        std::string to_del = g_log_queue.front();
+        remove(to_del.c_str());
+        g_log_queue.pop();
     }
     return true;
 }
