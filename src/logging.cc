@@ -205,7 +205,7 @@ bool RecoverHistory(const char* path) {
     std::sort(loglist.begin(), loglist.end());
     for (std::vector<std::string>::iterator it = loglist.begin(); it != loglist.end();
             ++it) {
-        g_log_queue.push(loglist[idx]);
+        g_log_queue.push(*it);
     }
     while (static_cast<int64_t>(g_log_queue.size()) > g_log_count) {
         std::string to_del = g_log_queue.front();
