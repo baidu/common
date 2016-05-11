@@ -17,6 +17,9 @@
 #include <syscall.h>
 #include <sys/time.h>
 #include <unistd.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <dirent.h>
 
 #include "mutex.h"
 #include "thread.h"
@@ -27,9 +30,11 @@ namespace common {
 
 int g_log_level = INFO;
 int64_t g_log_size = 0;
+int32_t g_log_count = 0;
 FILE* g_log_file = stdout;
 std::string g_log_file_name;
 FILE* g_warning_file = NULL;
+std::queue<std::string> g_log_queue;
 
 bool GetNewLog(bool append) {
     char buf[30];
@@ -65,6 +70,15 @@ bool GetNewLog(bool append) {
     g_log_file = fp;
     remove(g_log_file_name.c_str());
     symlink(full_path.substr(idx).c_str(), g_log_file_name.c_str());
+    if (0 == g_log_count) {
+        return true;
+    }
+    g_log_queue.push(full_path);
+    while (static_cast<int64_t>(g_log_queue.size()) > g_log_count) {
+        std::string to_del = g_log_queue.front();
+        remove(to_del.c_str());
+        g_log_queue.pop();
+    }
     return true;
 }
 
@@ -160,6 +174,47 @@ bool SetWarningFile(const char* path, bool append) {
     return true;
 }
 
+bool RecoverHistory(const char* path) {
+    std::string log_path(path);
+    size_t idx = log_path.rfind('/');
+    std::string dir = "./";
+    std::string log(path);
+    if (idx != std::string::npos) {
+        dir = log_path.substr(0, idx + 1);
+        log = log_path.substr(idx + 1);
+    }
+    struct dirent *entry = NULL;
+    DIR *dir_ptr = opendir(dir.c_str());
+    if (dir_ptr == NULL) {
+        return false;
+    }
+    std::vector<std::string> loglist;
+    while (entry = readdir(dir_ptr)) {
+        if (std::string(entry->d_name).find(log) != std::string::npos) {
+            std::string file_name = dir + std::string(entry->d_name);
+            struct stat sta;
+            if (-1 == lstat(file_name.c_str(), &sta)) {
+                return false;
+            }
+            if (S_ISREG(sta.st_mode)) {
+                loglist.push_back(dir + std::string(entry->d_name));
+            }
+        }
+    }
+    closedir(dir_ptr);
+    std::sort(loglist.begin(), loglist.end());
+    for (std::vector<std::string>::iterator it = loglist.begin(); it != loglist.end();
+            ++it) {
+        g_log_queue.push(*it);
+    }
+    while (static_cast<int64_t>(g_log_queue.size()) > g_log_count) {
+        std::string to_del = g_log_queue.front();
+        remove(to_del.c_str());
+        g_log_queue.pop();
+    }
+    return true;
+}
+
 bool SetLogFile(const char* path, bool append) {
     g_log_file_name.assign(path);
     return GetNewLog(append);
@@ -170,6 +225,17 @@ bool SetLogSize(int size) {
         return false;
     }
     g_log_size = static_cast<int64_t>(size) << 20;
+    return true;
+}
+
+bool SetLogCount(int count) {
+    if (count < 0) {
+        return false;
+    }
+    g_log_count = count;
+    if (!RecoverHistory(g_log_file_name.c_str())) {
+        return false;
+    }
     return true;
 }
 
