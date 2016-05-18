@@ -242,7 +242,7 @@ bool SetLogCount(int count) {
 void Logv(int log_level, const char* format, va_list ap) {
     static __thread uint64_t thread_id = 0;
     static __thread char tid_str[32];
-    static __thread int tid_str_len = 7;
+    static __thread int tid_str_len = 0;
     if (thread_id == 0) {
         thread_id = syscall(__NR_gettid);
         tid_str_len = snprintf(tid_str, sizeof(tid_str), " %5d ", static_cast<int32_t>(thread_id));
