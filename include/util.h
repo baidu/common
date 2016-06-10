@@ -36,7 +36,7 @@ static inline bool SplitPath(const std::string& path,
     element->clear();
     size_t last_pos = 0;
     for (size_t i = 1; i <= path.size(); i++) {
-        if (path[i] == '/' || i == path.size()) {
+        if (i == path.size() || path[i] == '/') {
             if (last_pos + 1 < i) {
                 element->push_back(path.substr(last_pos + 1, i - last_pos - 1));
             }
