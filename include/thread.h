@@ -8,6 +8,7 @@
 #define  COMMON_THREAD_H_
 
 #include <pthread.h>
+#include <string.h>
 
 #include <boost/function.hpp>
 
@@ -16,6 +17,9 @@ namespace common {
 
 class Thread {
 public:
+    Thread() {
+        memset(&tid_, sizeof(tid_), 0);
+    }
     bool Start(boost::function<void ()> thread_proc) {
         user_proc_ = thread_proc;
         int ret = pthread_create(&tid_, NULL, ProcWrapper, this);
@@ -31,6 +35,8 @@ public:
         return (ret == 0);
     }
 private:
+    Thread(const Thread&);
+    void operator=(const Thread&);
     static void* ProcWrapper(void* arg) {
         reinterpret_cast<Thread*>(arg)->user_proc_();
         return NULL;
