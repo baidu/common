@@ -9,6 +9,7 @@
 #include <assert.h>
 #include <boost/bind.hpp>
 #include <queue>
+#include <set>
 #include <stdarg.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -34,7 +35,10 @@ int32_t g_log_count = 0;
 FILE* g_log_file = stdout;
 std::string g_log_file_name;
 FILE* g_warning_file = NULL;
+int64_t g_total_size_limit = 0;
+
 std::queue<std::string> g_log_queue;
+int64_t current_total_size = 0;
 
 bool GetNewLog(bool append) {
     char buf[30];
@@ -70,13 +74,16 @@ bool GetNewLog(bool append) {
     g_log_file = fp;
     remove(g_log_file_name.c_str());
     symlink(full_path.substr(idx).c_str(), g_log_file_name.c_str());
-    if (0 == g_log_count) {
-        return true;
-    }
     g_log_queue.push(full_path);
-    while (static_cast<int64_t>(g_log_queue.size()) > g_log_count) {
+    while ((g_log_count && static_cast<int64_t>(g_log_queue.size()) > g_log_count)
+            || (g_total_size_limit && current_total_size > g_total_size_limit)) {
         std::string to_del = g_log_queue.front();
+        struct stat sta;
+        if (-1 == lstat(to_del.c_str(), &sta)) {
+            return false;
+        }
         remove(to_del.c_str());
+        current_total_size -= sta.st_size;
         g_log_queue.pop();
     }
     return true;
@@ -118,6 +125,7 @@ public:
                 buffer_queue_.pop();
                 if (g_log_file != stdout && g_log_size && str &&
                         static_cast<int64_t>(size_ + str->length()) > g_log_size) {
+                    current_total_size += static_cast<int64_t>(size_ + str->length());
                     GetNewLog(false);
                     size_ = 0;
                 }
@@ -198,6 +206,7 @@ bool RecoverHistory(const char* path) {
             }
             if (S_ISREG(sta.st_mode)) {
                 loglist.push_back(dir + std::string(entry->d_name));
+                current_total_size += sta.st_size;
             }
         }
     }
@@ -205,10 +214,18 @@ bool RecoverHistory(const char* path) {
     std::sort(loglist.begin(), loglist.end());
     for (std::vector<std::string>::iterator it = loglist.begin(); it != loglist.end();
             ++it) {
-        g_log_queue.push(*it);
+        if (*it != g_log_queue.front()) {
+            g_log_queue.push(*it);
+        }
     }
-    while (static_cast<int64_t>(g_log_queue.size()) > g_log_count) {
+    while ( (g_log_count && static_cast<int64_t>(g_log_queue.size()) > g_log_count)
+            || (g_total_size_limit && current_total_size > g_total_size_limit)) {
         std::string to_del = g_log_queue.front();
+
+        struct stat sta;
+        if (-1 == lstat(to_del.c_str(), &sta)) break;
+        current_total_size -= sta.st_size;
+
         remove(to_del.c_str());
         g_log_queue.pop();
     }
@@ -229,10 +246,21 @@ bool SetLogSize(int size) {
 }
 
 bool SetLogCount(int count) {
-    if (count < 0) {
+    if (count < 0 || g_total_size_limit != 0) {
         return false;
     }
     g_log_count = count;
+    if (!RecoverHistory(g_log_file_name.c_str())) {
+        return false;
+    }
+    return true;
+}
+
+bool SetLogSizeLimit(int size) {
+    if (size < 0 || g_log_count != 0) {
+        return false;
+    }
+    g_total_size_limit = static_cast<int64_t>(size) << 20;
     if (!RecoverHistory(g_log_file_name.c_str())) {
         return false;
     }
