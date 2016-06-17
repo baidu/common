@@ -241,8 +241,11 @@ bool SetLogCount(int count) {
 
 void Logv(int log_level, const char* format, va_list ap) {
     static __thread uint64_t thread_id = 0;
+    static __thread char tid_str[32];
+    static __thread int tid_str_len = 0;
     if (thread_id == 0) {
         thread_id = syscall(__NR_gettid);
+        tid_str_len = snprintf(tid_str, sizeof(tid_str), " %5d ", static_cast<int32_t>(thread_id));
     }
 
     // We try twice: the first time with a fixed-size stack allocated buffer,
@@ -263,7 +266,8 @@ void Logv(int log_level, const char* format, va_list ap) {
 
         int32_t rlen = timer::now_time_str(p, limit - p);
         p += rlen;
-        p += snprintf(p, limit - p, " %lld ", static_cast<long long unsigned int>(thread_id));
+        memcpy(p, tid_str, tid_str_len);
+        p += tid_str_len;
 
         // Print the message
         if (p < limit) {
