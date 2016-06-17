@@ -126,7 +126,9 @@ public:
                 if (g_log_file != stdout && g_log_size && str &&
                         static_cast<int64_t>(size_ + str->length()) > g_log_size) {
                     current_total_size += static_cast<int64_t>(size_ + str->length());
+                    mu_.Unlock();
                     GetNewLog(false);
+                    mu_.Lock();
                     size_ = 0;
                 }
                 mu_.Unlock();
