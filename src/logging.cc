@@ -86,6 +86,8 @@ bool GetNewLog(bool append) {
             remove(it->c_str());
             current_total_size -= sta.st_size;
             g_log_set.erase(it++);
+        } else {
+            break;
         }
     }
     return true;
@@ -135,13 +137,13 @@ public:
                 }
                 mu_.Unlock();
                 if (str && !str->empty()) {
-                    fwrite(str->data(), 1, str->size(), g_log_file);
-                    loglen += str->size();
+                    size_t lret = fwrite(str->data(), 1, str->size(), g_log_file);
+                    loglen += lret;
                     if (g_warning_file && log_level >= 8) {
-                        fwrite(str->data(), 1, str->size(), g_warning_file);
-                        wflen += str->size();
+                        size_t wret = fwrite(str->data(), 1, str->size(), g_warning_file);
+                        wflen += wret;
                     }
-                    if (g_log_size) size_ += str->length();
+                    if (g_log_size) size_ += lret;
                 }
                 delete str;
                 mu_.Lock();
