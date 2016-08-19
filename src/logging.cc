@@ -282,6 +282,23 @@ void Logv(int log_level, const char* format, va_list ap) {
         tid_str_len = snprintf(tid_str, sizeof(tid_str), " %5d ", static_cast<int32_t>(thread_id));
     }
 
+    static const char* level_str[] = {
+        "[VERBOSE] ", "[DEBUG] ", "[INFO] ", "[WARNING] ", "[FATAL] "
+    };
+    const char* cur_level = level_str[0];
+    if (log_level < DEBUG) {
+        cur_level = level_str[0];
+    } else if (log_level < INFO) {
+        cur_level = level_str[1];
+    } else if (log_level < WARNING) {
+        cur_level = level_str[2];
+    } else if (log_level < FATAL) {
+        cur_level = level_str[3];
+    } else {
+        cur_level = level_str[4];
+    }
+    int level_str_len = strlen(cur_level);
+
     // We try twice: the first time with a fixed-size stack allocated buffer,
     // and the second time with a much larger dynamically allocated buffer.
     char buffer[500];
@@ -302,6 +319,8 @@ void Logv(int log_level, const char* format, va_list ap) {
         p += rlen;
         memcpy(p, tid_str, tid_str_len);
         p += tid_str_len;
+        memcpy(p, cur_level, level_str_len);
+        p += level_str_len;
 
         // Print the message
         if (p < limit) {
@@ -333,7 +352,7 @@ void Logv(int log_level, const char* format, va_list ap) {
         //    fflush(g_warning_file);
         //}
         g_logger.WriteLog(log_level, base, p - base);
-        if (log_level == FATAL) {
+        if (log_level >= FATAL) {
             g_logger.Flush();
         }
         if (base != buffer) {
@@ -351,7 +370,7 @@ void Log(int level, const char* fmt, ...) {
         Logv(level, fmt, ap);
     }
     va_end(ap);
-    if (level == FATAL) {
+    if (level >= FATAL) {
         abort();
     }
 }
