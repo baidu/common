@@ -283,7 +283,7 @@ void Logv(int log_level, const char* format, va_list ap) {
     }
 
     static const char* level_str[] = {
-        "[VERBOSE] ", "[DEBUG] ", "[INFO] ", "[WARNING] ", "[FATAL] "
+        "[V] ", "[D] ", "[I] ", "[W] ", "[F] "
     };
     const char* cur_level = level_str[0];
     if (log_level < DEBUG) {
