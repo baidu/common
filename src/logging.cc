@@ -203,7 +203,7 @@ bool RecoverHistory(const char* path) {
         return false;
     }
     std::vector<std::string> loglist;
-    while (entry = readdir(dir_ptr)) {
+    while ((entry = readdir(dir_ptr)) != NULL) {
         if (std::string(entry->d_name).find(log) != std::string::npos) {
             std::string file_name = dir + std::string(entry->d_name);
             struct stat sta;
