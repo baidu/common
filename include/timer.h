@@ -74,6 +74,25 @@ private:
     const char* msg2_;
 };
 
+class TimeChecker {
+public:
+    TimeChecker() {
+        start_ = get_micros();
+    }
+    void Check(int64_t timeout, const std::string& msg) {
+        int64_t now = get_micros();
+        int64_t interval = now - start_;
+        if (timeout == -1 || interval > timeout) {
+            char buf[30];
+            now_time_str(buf, 30);
+            fprintf(stderr, "[TimeChecker] %s %s use %ld us\n", buf, msg.c_str(), interval);
+        }
+        start_ = get_micros();
+    }
+private:
+    int64_t start_;
+};
+
 }
 }
 } // namespace baidu
