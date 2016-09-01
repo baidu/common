@@ -89,6 +89,9 @@ public:
         }
         start_ = get_micros();
     }
+    void Reset() {
+        start_ = get_micros();
+    }
 private:
     int64_t start_;
 };
