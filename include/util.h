@@ -7,6 +7,7 @@
 #ifndef  COMMON_UTIL_H_
 #define  COMMON_UTIL_H_
 
+#include <stdint.h>
 #include <unistd.h>
 
 #include <string>
@@ -58,6 +59,17 @@ static inline void EncodeBigEndian(char* buf, uint64_t value) {
     buf[5] = (value >> 16) & 0xff;
     buf[6] = (value >> 8) & 0xff;
     buf[7] = value & 0xff;
+}
+
+static inline uint64_t DecodeBigEndian(const char* buf) {
+    return ((static_cast<uint64_t>(static_cast<unsigned char>(buf[0]))) << 56
+        | (static_cast<uint64_t>(static_cast<unsigned char>(buf[1])) << 48)
+        | (static_cast<uint64_t>(static_cast<unsigned char>(buf[2])) << 40)
+        | (static_cast<uint64_t>(static_cast<unsigned char>(buf[3])) << 32)
+        | (static_cast<uint64_t>(static_cast<unsigned char>(buf[4])) << 24)
+        | (static_cast<uint64_t>(static_cast<unsigned char>(buf[5])) << 16)
+        | (static_cast<uint64_t>(static_cast<unsigned char>(buf[6])) << 8)
+        | (static_cast<uint64_t>(static_cast<unsigned char>(buf[7]))));
 }
 
 } // namespace util
