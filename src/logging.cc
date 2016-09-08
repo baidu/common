@@ -101,6 +101,8 @@ class AsyncLogger {
 public:
     AsyncLogger()
       : jobs_(&mu_), done_(&mu_), stopped_(false), size_(0) {
+        buffer_queue_ = new std::queue<std::pair<int, std::string*> >;
+        bg_queue_ = new std::queue<std::pair<int, std::string*> >;
         thread_.Start(boost::bind(&AsyncLogger::AsyncWriter, this));
     }
     ~AsyncLogger() {
@@ -110,32 +112,30 @@ public:
             jobs_.Signal();
         }
         thread_.Join();
+        delete buffer_queue_;
+        delete bg_queue_;
         // close fd
     }
     void WriteLog(int log_level, const char* buffer, int32_t len) {
         std::string* log_str = new std::string(buffer, len);
         MutexLock lock(&mu_);
-        buffer_queue_.push(make_pair(log_level, log_str));
+        buffer_queue_->push(make_pair(log_level, log_str));
         jobs_.Signal();
     }
     void AsyncWriter() {
-        MutexLock lock(&mu_);
         while (1) {
             int loglen = 0;
             int wflen = 0;
-            while (!buffer_queue_.empty()) {
-                int log_level = buffer_queue_.front().first;
-                std::string* str = buffer_queue_.front().second;
-                buffer_queue_.pop();
+            while (!bg_queue_->empty()) {
+                int log_level = bg_queue_->front().first;
+                std::string* str = bg_queue_->front().second;
+                bg_queue_->pop();
                 if (g_log_file != stdout && g_log_size && str &&
                         static_cast<int64_t>(size_ + str->length()) > g_log_size) {
                     current_total_size += static_cast<int64_t>(size_ + str->length());
-                    mu_.Unlock();
                     GetNewLog(false);
-                    mu_.Lock();
                     size_ = 0;
                 }
-                mu_.Unlock();
                 if (str && !str->empty()) {
                     size_t lret = fwrite(str->data(), 1, str->size(), g_log_file);
                     loglen += lret;
@@ -146,7 +146,11 @@ public:
                     if (g_log_size) size_ += lret;
                 }
                 delete str;
-                mu_.Lock();
+            }
+            MutexLock lock(&mu_);
+            if (!buffer_queue_->empty()) {
+                std::swap(buffer_queue_, bg_queue_);
+                continue;
             }
             if (loglen) fflush(g_log_file);
             if (wflen) fflush(g_warning_file);
@@ -159,7 +163,7 @@ public:
     }
     void Flush() {
         MutexLock lock(&mu_);
-        buffer_queue_.push(std::make_pair(0, reinterpret_cast<std::string*>(NULL)));
+        buffer_queue_->push(std::make_pair(0, reinterpret_cast<std::string*>(NULL)));
         jobs_.Signal();
         done_.Wait();
     }
@@ -170,7 +174,8 @@ private:
     bool stopped_;
     int64_t size_;
     Thread thread_;
-    std::queue<std::pair<int, std::string*> > buffer_queue_;
+    std::queue<std::pair<int, std::string*> > * buffer_queue_;
+    std::queue<std::pair<int, std::string*> > * bg_queue_;
 };
 
 AsyncLogger g_logger;
