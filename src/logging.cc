@@ -123,9 +123,9 @@ public:
         jobs_.Signal();
     }
     void AsyncWriter() {
+        int64_t loglen = 0;
+        int64_t wflen = 0;
         while (1) {
-            int loglen = 0;
-            int wflen = 0;
             while (!bg_queue_->empty()) {
                 int log_level = bg_queue_->front().first;
                 std::string* str = bg_queue_->front().second;
@@ -154,11 +154,13 @@ public:
             }
             if (loglen) fflush(g_log_file);
             if (wflen) fflush(g_warning_file);
+            done_.Broadcast();
             if (stopped_) {
                 break;
             }
-            done_.Broadcast();
             jobs_.Wait();
+            loglen = 0;
+            wflen = 0;
         }
     }
     void Flush() {
