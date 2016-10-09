@@ -17,6 +17,13 @@ namespace baidu {
 namespace common {
 
 namespace timer {
+
+enum Precision {
+    day,
+    min,
+    usec,
+};
+
 static inline long get_micros() {
     struct timeval tv;
     gettimeofday(&tv, NULL);
@@ -27,14 +34,24 @@ static inline int32_t now_time() {
     return static_cast<int32_t>(get_micros() / 1000000);
 }
 
-static inline int32_t now_time_str(char* buf, int32_t len) {
+static inline int32_t now_time_str(char* buf, int32_t len, Precision p = usec) {
     struct timeval tv;
     gettimeofday(&tv, NULL);
     const time_t seconds = tv.tv_sec;
     struct tm t;
     localtime_r(&seconds, &t);
-    return snprintf(buf, len,
-            "%02d/%02d %02d:%02d:%02d.%06d",
+    if (p == day) {
+        return snprintf(buf, len, "%02d/%02d",
+                t.tm_mon + 1,
+                t.tm_mday);
+    } else if (p == min) {
+        return snprintf(buf, len, "%02d/%02d %02d:%02d",
+                t.tm_mon + 1,
+                t.tm_mday,
+                t.tm_hour,
+                t.tm_min);
+    }
+    return snprintf(buf, len, "%02d/%02d %02d:%02d:%02d.%06d",
             t.tm_mon + 1,
             t.tm_mday,
             t.tm_hour,
