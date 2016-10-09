@@ -19,9 +19,9 @@ namespace common {
 namespace timer {
 
 enum Precision {
-    day,
-    min,
-    usec,
+    kDay,
+    kMin,
+    kUsec,
 };
 
 static inline long get_micros() {
@@ -34,30 +34,33 @@ static inline int32_t now_time() {
     return static_cast<int32_t>(get_micros() / 1000000);
 }
 
-static inline int32_t now_time_str(char* buf, int32_t len, Precision p = usec) {
+static inline int32_t now_time_str(char* buf, int32_t len, Precision p = kUsec) {
     struct timeval tv;
     gettimeofday(&tv, NULL);
     const time_t seconds = tv.tv_sec;
     struct tm t;
     localtime_r(&seconds, &t);
-    if (p == day) {
-        return snprintf(buf, len, "%02d/%02d",
+    int32_t ret = 0;
+    if (p == kDay) {
+        ret = snprintf(buf, len, "%02d/%02d",
                 t.tm_mon + 1,
                 t.tm_mday);
-    } else if (p == min) {
-        return snprintf(buf, len, "%02d/%02d %02d:%02d",
+    } else if (p == kMin) {
+        ret = snprintf(buf, len, "%02d/%02d %02d:%02d",
                 t.tm_mon + 1,
                 t.tm_mday,
                 t.tm_hour,
                 t.tm_min);
-    }
-    return snprintf(buf, len, "%02d/%02d %02d:%02d:%02d.%06d",
+    } else {
+        ret = snprintf(buf, len, "%02d/%02d %02d:%02d:%02d.%06d",
             t.tm_mon + 1,
             t.tm_mday,
             t.tm_hour,
             t.tm_min,
             t.tm_sec,
             static_cast<int>(tv.tv_usec));
+    }
+    return ret;
 }
 
 class AutoTimer {
