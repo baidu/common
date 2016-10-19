@@ -9,8 +9,7 @@
 
 #include <pthread.h>
 #include <string.h>
-
-#include <boost/function.hpp>
+#include <functional>
 
 namespace baidu {
 namespace common {
@@ -20,7 +19,7 @@ public:
     Thread() {
         memset(&tid_, sizeof(tid_), 0);
     }
-    bool Start(boost::function<void ()> thread_proc) {
+    bool Start(std::function<void ()> thread_proc) {
         user_proc_ = thread_proc;
         int ret = pthread_create(&tid_, NULL, ProcWrapper, this);
         return (ret == 0);
@@ -42,7 +41,7 @@ private:
         return NULL;
     }
 private:
-    boost::function<void ()> user_proc_;
+    std::function<void ()> user_proc_;
     pthread_t tid_;
 };
 

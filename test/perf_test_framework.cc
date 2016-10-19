@@ -7,6 +7,7 @@
 #include <counter.h>
 #include <mutex.h>
 #include <thread.h>
+#include <unistd.h>
 
 #include <sys/time.h>
 #include <stdio.h>

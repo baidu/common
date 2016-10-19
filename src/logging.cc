@@ -7,7 +7,8 @@
 #include "logging.h"
 
 #include <assert.h>
-#include <boost/bind.hpp>
+#include <functional>
+#include <algorithm>
 #include <queue>
 #include <set>
 #include <stdarg.h>
@@ -103,7 +104,7 @@ public:
       : jobs_(&mu_), done_(&mu_), stopped_(false), size_(0) {
         buffer_queue_ = new std::queue<std::pair<int, std::string*> >;
         bg_queue_ = new std::queue<std::pair<int, std::string*> >;
-        thread_.Start(boost::bind(&AsyncLogger::AsyncWriter, this));
+        thread_.Start(std::bind(&AsyncLogger::AsyncWriter, this));
     }
     ~AsyncLogger() {
         stopped_ = true;

@@ -5,7 +5,7 @@
 // Author: yanshiguang02@baidu.com
 
 #include <gtest/gtest.h>
-#include <boost/bind.hpp>
+#include <functional>
 
 #include <thread_pool.h>
 
@@ -28,7 +28,7 @@ protected:
 TEST_F(ThreadPoolTest, AddTask) {
     ThreadPool tp;
     MutexLock l(&task_mu_);
-    tp.AddTask(boost::bind(&ThreadPoolTest::Task, this));
+    tp.AddTask(std::bind(&ThreadPoolTest::Task, this));
     bool ret = task_done_.TimeWait(1000);
     ASSERT_TRUE(ret);
 }

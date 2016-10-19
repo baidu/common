@@ -6,7 +6,7 @@
 
 #include <thread.h>
 #include <counter.h>
-
+#include <unistd.h>
 
 const int kThreadNum = 8;
 
