@@ -18,7 +18,7 @@ namespace common {
 class Thread {
 public:
     Thread() {
-        memset(&tid_, sizeof(tid_), 0);
+        memset(&tid_, 0, sizeof(tid_));
     }
     bool Start(boost::function<void ()> thread_proc) {
         user_proc_ = thread_proc;
