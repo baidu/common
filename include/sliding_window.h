@@ -22,13 +22,10 @@ class SlidingWindow {
 public:
     typedef boost::function<void (int32_t, Item)> SlidingCallback;
     SlidingWindow(int32_t size, SlidingCallback callback)
-      : bitmap_(NULL), items_(NULL), item_count_(0),
-        callback_(callback), size_(size),
+      : bitmap_(new char[size]), items_(new Item[size]), 
+        item_count_(0), callback_(callback), size_(size),
         base_offset_(0), max_offset_(-1), ready_(0), notifying_(false) {
-        bitmap_ = new char[size];
         memset(bitmap_, 0, size);
-        items_ = new Item[size];
-        size_ = size;
     }
     ~SlidingWindow() {
         delete[] bitmap_;
