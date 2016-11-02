@@ -13,6 +13,7 @@
 #include <sstream>
 #include <vector>
 #include <boost/function.hpp>
+#include <boost/noncopyable.hpp>
 #include "mutex.h"
 #include "timer.h"
 
@@ -22,7 +23,7 @@ namespace common {
 static const int kDebugCheckTime = 5000;
 
 // An unscalable thread pool implimention.
-class ThreadPool {
+class ThreadPool :boost::noncopyable {
 public:
     ThreadPool(int thread_num = 10)
         : threads_num_(thread_num),

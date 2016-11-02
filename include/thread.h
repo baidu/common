@@ -11,11 +11,12 @@
 #include <string.h>
 
 #include <boost/function.hpp>
+#include <boost/noncopyable.hpp>
 
 namespace baidu {
 namespace common {
 
-class Thread {
+class Thread : boost::noncopyable {
 public:
     Thread() {
         memset(&tid_, 0, sizeof(tid_));

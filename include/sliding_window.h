@@ -11,6 +11,7 @@
 #include <vector>
 #include <map>
 #include <boost/function.hpp>
+#include <boost/noncopyable.hpp>
 
 #include "mutex.h"
 
@@ -18,7 +19,7 @@ namespace baidu {
 namespace common {
 
 template <typename Item>
-class SlidingWindow {
+class SlidingWindow : boost::noncopyable {
 public:
     typedef boost::function<void (int32_t, Item)> SlidingCallback;
     SlidingWindow(int32_t size, SlidingCallback callback)
