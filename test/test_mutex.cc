@@ -24,7 +24,7 @@ int main() {
     t1.Join();
     t2.Start(UnlockFunc);
     t2.Join();
-    printf("Done\n");
+    printf("Should not reach this point\n");
 }
 
 /* vim: set expandtab ts=4 sw=4 sts=4 tw=100: */

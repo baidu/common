@@ -10,7 +10,7 @@
 #include <stdint.h>
 #include <vector>
 #include <map>
-#include <boost/function.hpp>
+#include <functional>
 
 #include "mutex.h"
 
@@ -20,7 +20,7 @@ namespace common {
 template <typename Item>
 class SlidingWindow {
 public:
-    typedef boost::function<void (int32_t, Item)> SlidingCallback;
+    typedef std::function<void (int32_t, Item)> SlidingCallback;
     SlidingWindow(int32_t size, SlidingCallback callback)
       : bitmap_(NULL), items_(NULL), item_count_(0),
         callback_(callback), size_(size),
