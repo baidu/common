@@ -4,8 +4,9 @@
 //
 // Author: yanshiguang02@baidu.com
 
+#include <functional>
+
 #include <gtest/gtest.h>
-#include <boost/bind.hpp>
 
 #include <mutex.h>
 #include <thread.h>
@@ -29,7 +30,7 @@ protected:
 TEST_F(ThreadTest, Start) {
     Thread t;
     MutexLock l(&task_mu_);
-    t.Start(boost::bind(&ThreadTest::Task, this));
+    t.Start(std::bind(&ThreadTest::Task, this));
     bool ret = task_done_.TimeWait(1000);
     ASSERT_TRUE(ret);
 }

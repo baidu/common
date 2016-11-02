@@ -12,7 +12,8 @@
 #include <queue>
 #include <sstream>
 #include <vector>
-#include <boost/function.hpp>
+#include <functional>
+#include <unistd.h>
 #include "mutex.h"
 #include "timer.h"
 
@@ -80,7 +81,7 @@ public:
     }
 
     // Task definition.
-    typedef boost::function<void ()> Task;
+    typedef std::function<void ()> Task;
 
     // Add a task to the thread pool.
     void AddTask(const Task& task) {
