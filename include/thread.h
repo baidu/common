@@ -36,8 +36,6 @@ public:
         return (ret == 0);
     }
 private:
-    Thread(const Thread&);
-    void operator=(const Thread&);
     static void* ProcWrapper(void* arg) {
         reinterpret_cast<Thread*>(arg)->user_proc_();
         return NULL;

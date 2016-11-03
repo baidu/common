@@ -174,9 +174,6 @@ public:
     }
 
 private:
-    ThreadPool(const ThreadPool&);
-    void operator=(const ThreadPool&);
-
     static void* ThreadWrapper(void* arg) {
         reinterpret_cast<ThreadPool*>(arg)->ThreadProc();
         return NULL;

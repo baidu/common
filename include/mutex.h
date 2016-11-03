@@ -28,7 +28,7 @@ static void PthreadCall(const char* label, int result) {
 }
 
 // A Mutex represents an exclusive lock.
-class Mutex :boost::noncopyable {
+class Mutex : boost::noncopyable {
 public:
     Mutex()
         : owner_(0), msg_(NULL), msg_threshold_(0), lock_time_(0) {
@@ -95,8 +95,6 @@ private:
     }
 private:
     friend class CondVar;
-    Mutex(const Mutex&);
-    void operator=(const Mutex&);
     pthread_mutex_t mu_;
     pthread_t owner_;
     const char* msg_;
@@ -116,8 +114,6 @@ public:
     }
 private:
     Mutex *const mu_;
-    MutexLock(const MutexLock&);
-    void operator=(const MutexLock&);
 };
 
 // Conditional variable
@@ -156,8 +152,6 @@ public:
         PthreadCall("broadcast", pthread_cond_broadcast(&cond_));
     }
 private:
-    CondVar(const CondVar&);
-    void operator=(const CondVar&);
     Mutex* mu_;
     pthread_cond_t cond_;
 };
