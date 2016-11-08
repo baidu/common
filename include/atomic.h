@@ -29,7 +29,7 @@ static inline int atomic_add(volatile int *mem, int add)
     );
     return add;
 }
-static inline long atomic_add64(volatile long* mem, long add)
+static inline int64_t atomic_add64(volatile int64_t* mem, int64_t add)
 {
     asm volatile (
             "lock xaddq %0, (%1)"
@@ -56,7 +56,7 @@ static inline void atomic_inc(volatile int *mem)
             : "m"(*mem)
     );
 }
-static inline void atomic_inc64(volatile long *mem)
+static inline void atomic_inc64(volatile int64_t *mem)
 {
     asm volatile(
             "lock incq %0;"
@@ -81,7 +81,7 @@ static inline void atomic_dec(volatile int *mem)
             : "m"(*mem)
     );
 }
-static inline void atomic_dec64(volatile long *mem)
+static inline void atomic_dec64(volatile int64_t *mem)
 {
     asm volatile(
             "lock decq %0;"
@@ -108,8 +108,7 @@ static inline int atomic_swap(volatile void *lockword, int value)
             : "memory"
     );
     return value;
-}
-static inline long atomic_swap64(volatile void *lockword, long value)
+} static inline int64_t atomic_swap64(volatile void *lockword, int64_t value)
 {
     asm volatile(
             "lock xchg %0, (%1);"
@@ -150,13 +149,13 @@ static inline int atomic_comp_swap(volatile void *mem, int xchg, int cmp)
  * @brief 64λ if set
  *
  * @param [in/out] mem   : volatile void*
- * @param [in/out] xchg   : long long
- * @param [in/out] cmp   : long long
- * @return  inline int
+ * @param [in/out] xchg   : int64_t
+ * @param [in/out] cmp   : int64_t
+ * @return  int64_t
  * @author yanshiguang02
  * @date 2012/09/09 13:54:15
 **/
-static inline long atomic_comp_swap64(volatile void *mem, long long xchg, long long cmp)
+static inline int64_t atomic_comp_swap64(volatile void *mem, int64_t xchg, int64_t cmp)
 {
     asm volatile(
             "lock cmpxchg %1, (%2)"
