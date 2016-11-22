@@ -23,9 +23,9 @@ namespace common {
 static const int kDebugCheckTime = 5000;
 
 // An unscalable thread pool implimention.
-class ThreadPool {
+class ThreadPoolCpp11 {
 public:
-    ThreadPool(int thread_num = 10)
+    ThreadPoolCpp11(int thread_num = 10)
         : threads_num_(thread_num),
           pending_num_(0),
           work_cv_(&mutex_),
@@ -38,7 +38,7 @@ public:
           task_count_(0) {
         Start();
     }
-    ~ThreadPool() {
+    ~ThreadPoolCpp11() {
         Stop(false);
     }
     // Start a thread_num threads pool.
@@ -174,11 +174,11 @@ public:
     }
 
 private:
-    ThreadPool(const ThreadPool&);
-    void operator=(const ThreadPool&);
+    ThreadPoolCpp11(const ThreadPoolCpp11&);
+    void operator=(const ThreadPoolCpp11&);
 
     static void* ThreadWrapper(void* arg) {
-        reinterpret_cast<ThreadPool*>(arg)->ThreadProc();
+        reinterpret_cast<ThreadPoolCpp11*>(arg)->ThreadProc();
         return NULL;
     }
     void ThreadProc() {
@@ -279,7 +279,7 @@ private:
 
 } // namespace common
 
-using common::ThreadPool;
+using common::ThreadPoolCpp11;
 
 } // namespace baidu
 
