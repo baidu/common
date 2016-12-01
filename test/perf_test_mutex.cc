@@ -7,6 +7,7 @@
 #include <counter.h>
 #include <mutex.h>
 #include <thread.h>
+#include <unistd.h>
 
 #include <stdio.h>
 

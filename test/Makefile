@@ -1,11 +1,7 @@
-
-
-
-
-INCLUDEPATH=-I../include/ -Igtest/include -I../../../thirdparty/boost_1_57_0/
-CXXFLAGS=-g -O2
+INCLUDEPATH=-I../include/ -Igtest_deps/include
+CXXFLAGS=-std=c++11 -g -O2
 #TCMALLOC=-L../../tera/thirdparty/lib -ltcmalloc_minimal
-LDFLAGS=$(TCMALLOC) -L../ -Lgtest/lib -lgtest -lcommon -lpthread -lrt
+LDFLAGS=$(TCMALLOC) -L../ -Lgtest_deps/lib -lgtest -lcommon -lpthread -lrt
 
 TARGETS= test_logging test_thread_pool perf_test_thread_pool perf_test_counter \
 		 test_mutex test_rwlock test_util perf_test_mutex perf_test_condvar \
@@ -43,7 +39,6 @@ perf_test_condvar: perf_test_condvar.cc
 
 perf_test_framework: perf_test_framework.cc ../include/mutex.h
 	$(CXX) $(CXXFLAGS) $(INCLUDEPATH) $< -o $@ $(LDFLAGS)
-
 
 clean:
 	rm -rf $(TARGETS)
