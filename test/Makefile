@@ -7,8 +7,9 @@ CXXFLAGS=-g -O2
 #TCMALLOC=-L../../tera/thirdparty/lib -ltcmalloc_minimal
 LDFLAGS=$(TCMALLOC) -L../ -Lgtest/lib -lgtest -lcommon -lpthread -lrt
 
-TARGETS= test_logging test_thread_pool perf_test_thread_pool perf_test_counter test_mutex \
-		 test_util perf_test_mutex perf_test_condvar perf_test_framework
+TARGETS= test_logging test_thread_pool perf_test_thread_pool perf_test_counter \
+		 test_mutex test_rwlock test_util perf_test_mutex perf_test_condvar \
+		 perf_test_framework
 all: $(TARGETS)
 
 test_logging: test_logging.cc ../include/logging.h ../src/logging.cc
@@ -23,6 +24,9 @@ perf_test_counter: perf_test_counter.cc
 	$(CXX) $(CXXFLAGS) $(INCLUDEPATH) $< -o $@ $(LDFLAGS)
 
 test_mutex: test_mutex.cc
+	$(CXX) $(CXXFLAGS) $(INCLUDEPATH) $< -o $@ $(LDFLAGS)
+
+test_rwlock: test_rwlock.cc
 	$(CXX) $(CXXFLAGS) $(INCLUDEPATH) $< -o $@ $(LDFLAGS)
 
 test_util: test_util.cc ../include/util.h
