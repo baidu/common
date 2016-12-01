@@ -7,7 +7,7 @@
 #include <unistd.h>
 
 #include <rw_lock.h>
-#include <thread.h>
+#include <thread_pool.h>
 
 baidu::common::RWLock rw_lock;
 
@@ -27,11 +27,13 @@ void WriteLockFunc() {
 }
 
 int main() {
-    baidu::common::Thread t1, t2, t3, t4;
-    t1.Start(ReadLockFunc);
-    t2.Start(WriteLockFunc);
-    t3.Start(ReadLockFunc);
-    t4.Start(WriteLockFunc);
+    baidu::common::ThreadPool tp;
+    tp.AddTask(std::bind(ReadLockFunc));
+    tp.AddTask(std::bind(WriteLockFunc));
+    tp.AddTask(std::bind(ReadLockFunc));
+    tp.AddTask(std::bind(WriteLockFunc));
+    tp.Stop(true);
+    printf("test passed\n");
 }
 
 /* vim: set expandtab ts=4 sw=4 sts=4 tw=100: */

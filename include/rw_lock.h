@@ -12,8 +12,6 @@
 #include <string.h>
 #include <sys/time.h>
 
-#include "thread.h"
-#include "mutex.h"
 #include "timer.h"
 
 namespace baidu {
