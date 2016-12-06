@@ -19,7 +19,7 @@ void UnlockFunc() {
 }
 
 int main() {
-    baidu::common::Thread t1,t2;
+    baidu::common::Thread t1, t2;
     t1.Start(LockFunc);
     t1.Join();
     t2.Start(UnlockFunc);

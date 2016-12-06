@@ -4,8 +4,8 @@
 //
 // Author: yanshiguang02@baidu.com
 
-#ifndef  BAIDU_COMMON_LOCK_MUTEX_H_
-#define  BAIDU_COMMON_LOCK_MUTEX_H_
+#ifndef  COMMON_LOCK_MUTEX_H_
+#define  COMMON_LOCK_MUTEX_H_
 
 #include <stdint.h>
 #include <stdlib.h>
@@ -52,7 +52,8 @@ public:
         if (msg && lock_time_ - s > msg_threshold) {
             char buf[32];
             common::timer::now_time_str(buf, sizeof(buf));
-            printf("%s [Mutex] %s wait lock %.3f ms\n", buf, msg, (lock_time_ -s) / 1000.0);
+            printf("%s [Mutex] %s wait lock %.3f ms\n",
+                    buf, msg,(lock_time_ - s) / 1000.0);
         }
         #endif
     }
