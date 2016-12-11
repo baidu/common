@@ -3,8 +3,8 @@
 // found in the LICENSE file.
 //
 
-#ifndef  COMMON_RWLOCK_H_
-#define  COMMON_RWLOCK_H_
+#ifndef  BAIDU_COMMON_RWLOCK_H_
+#define  BAIDU_COMMON_RWLOCK_H_
 
 #include <stdint.h>
 #include <stdlib.h>
@@ -12,6 +12,7 @@
 #include <string.h>
 #include <sys/time.h>
 
+#include "rw_lock_impl.h"
 #include "timer.h"
 
 namespace baidu {
@@ -19,17 +20,12 @@ namespace common {
 
 class RWLock {
 public:
-    RWLock() : msg_(NULL), msg_threshold_(0), lock_time_(0) {
-        pthread_rwlockattr_t attr;
-        pthread_rwlockattr_init(&attr);
-        pthread_rwlockattr_setkind_np(&attr, PTHREAD_RWLOCK_PREFER_WRITER_NONRECURSIVE_NP);
-        pthread_rwlock_init(&rw_lock_, &attr);
-    }
+    RWLock() : msg_(NULL), msg_threshold_(0), lock_time_(0) {}
     void ReadLock(const char* msg = NULL, int64_t msg_threshold = 5000) {
         #ifdef RWLOCK_DEBUG
         int64_t s = (msg) ? timer::get_micros() : 0;
         #endif
-        pthread_rwlock_rdlock(&rw_lock_);
+        rw_lock_impl_.ReadLock();
         AfterLock(msg, msg_threshold);
         #ifdef RWLOCK_DEBUG
         if (msg && lock_time_ - s > msg_threshold) {
@@ -44,7 +40,7 @@ public:
         #ifdef RWLOCK_DEBUG
         int64_t s = (msg) ? timer::get_micros() : 0;
         #endif
-        pthread_rwlock_wrlock(&rw_lock_);
+        rw_lock_impl_.WriteLock();
         AfterLock(msg, msg_threshold);
         #ifdef RWLOCK_DEBUG
         if (msg && lock_time_ - s > msg_threshold) {
@@ -57,7 +53,7 @@ public:
     }
     void Unlock() {
         BeforeUnlock();
-        pthread_rwlock_unlock(&rw_lock_);
+        rw_lock_impl_.Unlock();
     }
 private:
     void AfterLock(const char* msg, int64_t msg_threshold) {
@@ -85,7 +81,7 @@ private:
 private:
     RWLock(const RWLock&);
     void operator=(const RWLock&);
-    pthread_rwlock_t rw_lock_;
+    RWLockImpl rw_lock_impl_;
     const char* msg_;
     int64_t msg_threshold_;
     int64_t lock_time_;
