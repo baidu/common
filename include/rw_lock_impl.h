@@ -15,7 +15,8 @@ class RWLockImpl {
 public:
     RWLockImpl();
     int ReadLock();
-    int WriteLock(); int Unlock();
+    int WriteLock();
+    int Unlock();
 private:
     unsigned int readers_size_;
     unsigned int readers_wakeup_;
