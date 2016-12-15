@@ -28,8 +28,8 @@ RWLockImpl::RWLockImpl() : readers_size_(0), readers_wakeup_(0),
 int RWLockImpl::ReadLock() {
     mu_.Lock();
     while (true) {
-        if (writer_tid_ == 0) {
-            // no writer now, get the lock
+        if (writer_tid_ == 0 && writers_queue_size_ == 0) {
+            // no writer is writing or waiting, get the lock
             readers_size_++;
             mu_.Unlock();
             return 0;
