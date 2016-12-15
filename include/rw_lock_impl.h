@@ -13,6 +13,7 @@ namespace common {
 
 class RWLockImpl {
 public:
+    RWLockImpl();
     int ReadLock();
     int WriteLock(); int Unlock();
 private:

@@ -8,35 +8,22 @@
 #include <syscall.h>
 #include <linux/futex.h>
 #include <limits.h>
+#include <unistd.h>
 
 #include "mutex.h"
 
-#define futex_wait(futex, val) \
-  ({									      \
-    int __status;							      \
-    register __typeof (val) _val asm ("edx") = (val);			      \
-    __asm __volatile ("xorq %%r10, %%r10\n\t"				      \
-		      "syscall"						      \
-		      : "=a" (__status)					      \
-		      : "0" (SYS_futex), "D" (futex), "S" (FUTEX_WAIT),	      \
-			"d" (_val)					      \
-		      : "memory", "cc", "r10", "r11", "cx");		      \
-    __status;								      \
-  })
-
-#define futex_wake(futex, nr) \
-  do {									      \
-    int __ignore;							      \
-    register __typeof (nr) _nr asm ("edx") = (nr);			      \
-    __asm __volatile ("syscall"						      \
-		      : "=a" (__ignore)					      \
-		      : "0" (SYS_futex), "D" (futex), "S" (FUTEX_WAKE),	      \
-			"d" (_nr)					      \
-		      : "memory", "cc", "r10", "r11", "cx");		      \
-  } while (0)
+static inline int sys_futex(void *futex, int op, int val,
+                            const struct timespec *timeout) {
+    return syscall(__NR_futex, op, val, timeout);
+}
 
 namespace baidu {
 namespace common {
+
+RWLockImpl::RWLockImpl() : readers_size_(0), readers_wakeup_(0),
+                       writer_wakeup_(0), readers_queue_size_(0),
+                       writers_queue_size_(0), writer_tid_(0) {
+}
 
 int RWLockImpl::ReadLock() {
     mu_.Lock();
@@ -50,7 +37,7 @@ int RWLockImpl::ReadLock() {
         readers_queue_size_++;
         int wait_val = readers_wakeup_;
         mu_.Unlock();
-        futex_wait(&readers_wakeup_, &wait_val);
+        sys_futex(&readers_wakeup_, FUTEX_WAIT, wait_val, NULL);
         mu_.Lock();
         readers_queue_size_--;
     }
@@ -71,7 +58,7 @@ int RWLockImpl::WriteLock() {
         writers_queue_size_++;
         int wait_val = writer_wakeup_;
         mu_.Unlock();
-        futex_wait(&writer_wakeup_, &wait_val);
+        sys_futex(&writer_wakeup_, FUTEX_WAIT, wait_val, NULL);
         mu_.Lock();
         writers_queue_size_--;
     }
@@ -92,12 +79,12 @@ int RWLockImpl::Unlock() {
         if (writers_queue_size_) {
             writer_wakeup_++;
             mu_.Unlock();
-            futex_wake(&writer_wakeup_, 1);
+            sys_futex(&writer_wakeup_, FUTEX_WAKE, 1, NULL);
             return 0;
         } else if (readers_queue_size_) {
             readers_wakeup_++;
             mu_.Unlock();
-            futex_wake(&readers_wakeup_, INT_MAX);
+            sys_futex(&readers_wakeup_, FUTEX_WAKE, INT_MAX, NULL);
             return 0;
         }
     }
