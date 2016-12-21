@@ -9,6 +9,7 @@
 #include <linux/futex.h>
 #include <limits.h>
 #include <unistd.h>
+#include <assert.h>
 
 #include "mutex.h"
 
@@ -68,6 +69,7 @@ int RWLockImpl::Unlock() {
     // don't use MutexLock, because we want to benefit from
     // memory barrier of pthread_mutex_lock/unlock
     mu_.Lock();
+    assert(writer_tid_ != 0 || readers_size_ > 0);
     if (writer_tid_ != 0) {
         // we allow unlock in another thread, so don't check tid here
         writer_tid_ = 0;
