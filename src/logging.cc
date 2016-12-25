@@ -291,7 +291,7 @@ void Logv(int log_level, const char* format, va_list ap) {
     }
 
     static const char level_char[] = {
-        'V', 'D', 'I', 'W', 'F'
+        'V', 'D', 'I', 'W', 'E', 'F'
     };
     char cur_level = level_char[0];
     if (log_level < DEBUG) {
@@ -300,10 +300,12 @@ void Logv(int log_level, const char* format, va_list ap) {
         cur_level = level_char[1];
     } else if (log_level < WARNING) {
         cur_level = level_char[2];
-    } else if (log_level < FATAL) {
+    } else if (log_level < ERROR) {
         cur_level = level_char[3];
-    } else {
+    } else if (log_level < FATAL) {
         cur_level = level_char[4];
+    } else {
+        cur_level = level_char[5];
     }
 
     // We try twice: the first time with a fixed-size stack allocated buffer,
@@ -359,7 +361,7 @@ void Logv(int log_level, const char* format, va_list ap) {
         //    fflush(g_warning_file);
         //}
         g_logger.WriteLog(log_level, base, p - base);
-        if (log_level >= FATAL) {
+        if (log_level >= ERROR) {
             g_logger.Flush();
         }
         if (base != buffer) {
@@ -377,7 +379,7 @@ void Log(int level, const char* fmt, ...) {
         Logv(level, fmt, ap);
     }
     va_end(ap);
-    if (level >= FATAL) {
+    if (level == FATAL) {
         abort();
     }
 }

@@ -16,7 +16,8 @@ enum LogLevel {
     DEBUG = 2,
     INFO = 4,
     WARNING = 8,
-    FATAL = 16,
+    ERROR = 16,
+    FATAL = 32,
 };
 
 void SetLogLevel(int level);
@@ -47,6 +48,7 @@ private:
 using common::DEBUG;
 using common::INFO;
 using common::WARNING;
+using common::ERROR;
 using common::FATAL;
 
 } // namespace baidu
