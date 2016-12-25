@@ -16,7 +16,7 @@ enum LogLevel {
     DEBUG = 2,
     INFO = 4,
     WARNING = 8,
-    EXIT = 16,
+    ERROR = 16,
     FATAL = 32,
 };
 
@@ -48,7 +48,7 @@ private:
 using common::DEBUG;
 using common::INFO;
 using common::WARNING;
-using common::EXIT;
+using common::ERROR;
 using common::FATAL;
 
 } // namespace baidu
