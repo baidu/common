@@ -39,12 +39,12 @@ FILE* g_warning_file = NULL;
 int64_t g_total_size_limit = 0;
 
 std::set<std::string> g_log_set;
-int64_t prev_log_size = 0;
-int64_t current_log_size = 0;
+int64_t g_prev_log_size = 0;
+int64_t g_current_log_size = 0;
 
 bool RemoveRedundantLog() {
     while ((g_log_count && static_cast<int64_t>(g_log_set.size()) > g_log_count) ||
-           (g_total_size_limit && prev_log_size + current_log_size > g_total_size_limit)) {
+           (g_total_size_limit && g_prev_log_size + g_current_log_size > g_total_size_limit)) {
         auto it = g_log_set.begin();
         if (it != g_log_set.end()) {
             struct stat sta;
@@ -52,8 +52,8 @@ bool RemoveRedundantLog() {
                 return false;
             }
             remove(it->c_str());
-            prev_log_size -= sta.st_size;
-            g_log_set.erase(it++);
+            g_prev_log_size -= sta.st_size;
+            g_log_set.erase(it);
         } else {
             break;
         }
@@ -63,7 +63,7 @@ bool RemoveRedundantLog() {
 
 bool ListLog() {
     g_log_set.clear();
-    prev_log_size = 0;
+    g_prev_log_size = 0;
 
     std::string log_path(g_log_file_name);
     size_t idx = log_path.rfind('/');
@@ -87,7 +87,7 @@ bool ListLog() {
             }
             if (S_ISREG(sta.st_mode)) {
                 g_log_set.insert(dir + std::string(entry->d_name));
-                prev_log_size += sta.st_size;
+                g_prev_log_size += sta.st_size;
             }
         }
     }
@@ -123,7 +123,7 @@ bool GetNewLog(bool append) {
     FILE* fp = fopen(full_path.c_str(), mode);
     if (fp == NULL) {
         ListLog();
-        prev_log_size -= current_log_size;
+        g_prev_log_size -= g_current_log_size;
         return false;
     }
     if (g_log_file != stdout) {
@@ -132,7 +132,7 @@ bool GetNewLog(bool append) {
     g_log_file = fp;
     remove(g_log_file_name.c_str());
     symlink(full_path.substr(idx).c_str(), g_log_file_name.c_str());
-    current_log_size = 0;
+    g_current_log_size = 0;
     ListLog();
     RemoveRedundantLog();
     return true;
@@ -177,7 +177,7 @@ public:
                 bg_queue_->pop();
                 if (g_log_file != stdout && g_log_size && str &&
                         static_cast<int64_t>(size_ + str->length()) > g_log_size) {
-                    current_log_size += static_cast<int64_t>(size_ + str->length());
+                    g_current_log_size += static_cast<int64_t>(size_ + str->length());
                     GetNewLog(false);
                     size_ = 0;
                 }
