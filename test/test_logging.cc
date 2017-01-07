@@ -15,6 +15,9 @@ int main(int argc, char* argv[]) {
     LOGS(baidu::INFO) << 88 << " " << char_pointer << " " << string;
     LOGS(baidu::INFO) << 88 << " " << char_pointer << " " << string;
 
+    LOG_DEBUG("hello"<<"world"<<2222);
+    LOG_INFO("hello"<<"world"<<2222);
+    LOG_WARNING("hello"<<"world"<<2222);
     return 0;
 }
 

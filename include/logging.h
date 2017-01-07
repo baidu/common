@@ -56,6 +56,10 @@ using common::FATAL;
 #define LOG(level, fmt, args...) ::baidu::common::Log(level, "[%s:%d] " fmt, __FILE__, __LINE__, ##args)
 #define LOGS(level) ::baidu::common::LogStream(level)
 
+#define LOG_INFO(msg...)   do{::baidu::common::LogStream(::baidu::common::INFO)<<"[INFO]"<<"[" << __FILE__ << ":" << __LINE__ << ":" << __FUNCTION__ << "]|"<<msg;}while(0)
+#define LOG_DEBUG(msg...)   do{::baidu::common::LogStream(::baidu::common::DEBUG)<<"[DEBUG]"<<"[" << __FILE__ << ":" << __LINE__ << ":" << __FUNCTION__ << "]|"<<msg;}while(0)
+#define LOG_WARNING(msg...)   do{::baidu::common::LogStream(::baidu::common::WARNING)<<"[WARNING]"<<"[" << __FILE__ << ":" << __LINE__ << ":" << __FUNCTION__ << "]|"<<msg;}while(0)
+#define LOG_FATAL(msg...)   do{::baidu::common::LogStream(::baidu::common::FATAL)<<"[FATAL]"<<"[" << __FILE__ << ":" << __LINE__ << ":" << __FUNCTION__ << "]|"<<msg;}while(0)
 #endif  // BAIDU_COMMON_LOGGING_H_
 
 /* vim: set expandtab ts=4 sw=4 sts=4 tw=100: */
