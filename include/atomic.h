@@ -7,6 +7,8 @@
 #ifndef  BAIDU_COMMON_ATOMIC_H_
 #define  BAIDU_COMMON_ATOMIC_H_
 
+#include <stdint.h>
+
 namespace baidu {
 namespace common {
 
