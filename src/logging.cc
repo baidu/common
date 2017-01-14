@@ -147,10 +147,13 @@ public:
                 }
                 delete str;
             }
-            MutexLock lock(&mu_);
+            mu_.lock();
             if (!buffer_queue_->empty()) {
                 std::swap(buffer_queue_, bg_queue_);
+                mu_.unlock();
                 continue;
+            } else {
+                mu_.unlock();
             }
             if (loglen) fflush(g_log_file);
             if (wflen) fflush(g_warning_file);
