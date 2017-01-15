@@ -12,6 +12,7 @@
 #include <queue>
 #include <sstream>
 #include <vector>
+#include <set>
 #include <boost/function.hpp>
 #include "mutex.h"
 #include "timer.h"
@@ -104,7 +105,7 @@ public:
         int64_t exe_time = now_time + delay * 1000;
         BGItem bg_item(++last_task_id_, exe_time, task);
         time_queue_.push(bg_item);
-        latest_[bg_item.id] = bg_item;
+        latest_.insert(bg_item.id);
         work_cv_.Signal();
         return bg_item.id;
     }
@@ -121,7 +122,7 @@ public:
             {
                 MutexLock lock(&mutex_);
                 if (running_task_id_ != task_id) {
-                    BGMap::iterator it = latest_.find(task_id);
+                    BGSet::iterator it = latest_.find(task_id);
                     if (it == latest_.end()) {
                         if (is_running != NULL) {
                             *is_running = false;
@@ -197,8 +198,8 @@ private:
                 int64_t wait_time = (bg_item.exe_time - now_time) / 1000; // in ms
                 if (wait_time <= 0) {
                     time_queue_.pop();
-                    BGMap::iterator it = latest_.find(bg_item.id);
-                    if (it != latest_.end() && it->second.exe_time == bg_item.exe_time) {
+                    BGSet::iterator it = latest_.find(bg_item.id);
+                    if (it != latest_.end()) {
                         schedule_cost_sum_ += now_time - bg_item.exe_time;
                         schedule_count_++;
                         task = bg_item.task;
@@ -254,7 +255,7 @@ private:
             : id(id_t), exe_time(exe_time_t), task(task_t) {}
     };
     typedef std::priority_queue<BGItem> BGQueue;
-    typedef std::map<int64_t, BGItem> BGMap;
+    typedef std::set<int64_t> BGSet;
 
     int32_t threads_num_;
     std::deque<BGItem> queue_;
@@ -265,7 +266,7 @@ private:
     std::vector<pthread_t> tids_;
 
     BGQueue time_queue_;
-    BGMap latest_;
+    BGSet latest_;
     int64_t last_task_id_;
     int64_t running_task_id_;
 
