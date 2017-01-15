@@ -49,6 +49,11 @@ class Slice {
 
   // Return true iff the length of the referenced data is zero
   bool empty() const { return size_ == 0; }
+ 
+  // works as basic_string
+  const char* begin() const { return data_; }
+ 
+  const char* end() const { return data_ + size_; }
 
   // Return the ith byte in the referenced data.
   // REQUIRES: n < size()
