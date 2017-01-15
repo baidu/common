@@ -34,12 +34,16 @@ class Slice {
 
   // Create a slice that refers to d[0,n-1].
   Slice(const char* d, size_t n) : data_(d), size_(n) { }
+ 
+  Slice(const unsigned char* d, size_t n) : data_(reinterpret<const char*>(d)), size_(n) { }
 
   // Create a slice that refers to the contents of "s"
-  Slice(const std::string& s) : data_(s.data()), size_(s.size()) { }
+  Slice(const std::string& s) : data_(s.data()), size_(static_cast<size_t>(s.size())) { }
 
   // Create a slice that refers to s[0,strlen(s)-1]
-  Slice(const char* s) : data_(s), size_(strlen(s)) { }
+  Slice(const char* s) : data_(s), size_(static_cast<size_t>(strlen(s))) { }
+ 
+  Slice(const unsigned char* s) : data_(reinterpret<const char*>(s)), size_(static_cast<size_t>(strlen(s))) { }
 
   // Return a pointer to the beginning of the referenced data
   const char* data() const { return data_; }
