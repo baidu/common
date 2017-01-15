@@ -147,8 +147,8 @@ public:
 
     // Like Cache methods, but with an extra "hash" parameter.
     Cache::Handle* Insert(const Slice& key, uint32_t hash,
-            void* value, size_t charge,
-            void (*deleter)(const Slice& key, void* value));
+                          void* value, size_t charge,
+                          void (*deleter)(const Slice& key, void* value));
     Cache::Handle* Lookup(const Slice& key, uint32_t hash);
     void Release(Cache::Handle* handle);
     void Erase(const Slice& key, uint32_t hash);
