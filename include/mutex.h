@@ -12,6 +12,7 @@
 #include <pthread.h>
 #include <string.h>
 #include <sys/time.h>
+#include <boost/noncopyable.hpp>
 #include "timer.h"
 
 namespace baidu {
@@ -27,7 +28,7 @@ static void PthreadCall(const char* label, int result) {
 }
 
 // A Mutex represents an exclusive lock.
-class Mutex {
+class Mutex : boost::noncopyable {
 public:
     Mutex()
         : owner_(0), msg_(NULL), msg_threshold_(0), lock_time_(0) {
@@ -94,8 +95,6 @@ private:
     }
 private:
     friend class CondVar;
-    Mutex(const Mutex&);
-    void operator=(const Mutex&);
     pthread_mutex_t mu_;
     pthread_t owner_;
     const char* msg_;
@@ -104,7 +103,7 @@ private:
 };
 
 // Mutex lock guard
-class MutexLock {
+class MutexLock : boost::noncopyable {
 public:
     explicit MutexLock(Mutex *mu, const char* msg = NULL, int64_t msg_threshold = 5000)
       : mu_(mu) {
@@ -115,12 +114,10 @@ public:
     }
 private:
     Mutex *const mu_;
-    MutexLock(const MutexLock&);
-    void operator=(const MutexLock&);
 };
 
 // Conditional variable
-class CondVar {
+class CondVar : boost::noncopyable {
 public:
     explicit CondVar(Mutex* mu) : mu_(mu) {
         PthreadCall("init condvar", pthread_cond_init(&cond_, NULL));
@@ -155,8 +152,6 @@ public:
         PthreadCall("broadcast", pthread_cond_broadcast(&cond_));
     }
 private:
-    CondVar(const CondVar&);
-    void operator=(const CondVar&);
     Mutex* mu_;
     pthread_cond_t cond_;
 };

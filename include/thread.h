@@ -11,11 +11,12 @@
 #include <string.h>
 
 #include <boost/function.hpp>
+#include <boost/noncopyable.hpp>
 
 namespace baidu {
 namespace common {
 
-class Thread {
+class Thread : boost::noncopyable {
 public:
     Thread() {
         memset(&tid_, 0, sizeof(tid_));
@@ -35,8 +36,6 @@ public:
         return (ret == 0);
     }
 private:
-    Thread(const Thread&);
-    void operator=(const Thread&);
     static void* ProcWrapper(void* arg) {
         reinterpret_cast<Thread*>(arg)->user_proc_();
         return NULL;

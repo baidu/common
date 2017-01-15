@@ -23,8 +23,7 @@ static inline std::string GetLocalHostName() {
     if (0 != gethostname(str, kMaxHostNameSize + 1)) {
         return "";
     }
-    std::string hostname(str);
-    return hostname;
+    return std::string(str);
 }
 
 static const uint32_t MAX_PATH_LENGHT = 10240;
