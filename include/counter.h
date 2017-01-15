@@ -29,7 +29,7 @@ public:
     int64_t Dec() {
         return atomic_add64(&val_,-1) - 1;
     }
-    int64_t Get() {
+    int64_t Get() const {
         return val_;
     }
     int64_t Set(int64_t v) {
