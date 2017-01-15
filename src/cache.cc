@@ -130,6 +130,10 @@ private:
             }
         }
         assert(elems_ == count);
+        for (uint32_t i = 0; i < length_; i++) {
+            delete list_[i];
+            list_[i] = NULL;
+        }
         delete[] list_;
         list_ = new_list;
         length_ = new_length;
