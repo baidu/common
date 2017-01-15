@@ -41,7 +41,7 @@ class Slice {
   Slice(const std::string& s) : data_(s.data()), size_(static_cast<size_t>(s.size())) { }
 
   // Create a slice that refers to s[0,strlen(s)-1]
-  Slice(const char* s) : data_(s), size_(static_cast<size_t>(strlen(s))) { }
+  Slice(const char* s) : data_(s), size_(strlen(s)) { }
  
   Slice(const unsigned char* s) : data_(reinterpret_cast<const char*>(s)), size_(strlen(reinterpret_cast<const char*>(s))) { }
 
