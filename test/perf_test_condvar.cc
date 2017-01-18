@@ -7,10 +7,10 @@
 #include <counter.h>
 #include <mutex.h>
 #include <thread.h>
+#include <unistd.h>
 
 #include <stdio.h>
 #include <queue>
-#include <boost/lockfree/queue.hpp>
 
 int* ring __attribute__((aligned(64)));
 int r_len __attribute__((aligned(64))) = 102400;
@@ -30,7 +30,6 @@ Counter items __attribute__((aligned(64)));
 
 std::queue<int> queue __attribute__((aligned(64)));
 
-//boost::lockfree::queue<int, boost::lockfree::fixed_sized<false> > queue(1024000);
 Counter counter __attribute__((aligned(64)));
 
 void Consumer() {

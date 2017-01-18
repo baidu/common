@@ -3,7 +3,7 @@
 
 
 INCLUDEPATH=-I../include/ -Igtest/include -I../../../thirdparty/boost_1_57_0/
-CXXFLAGS=-g -O2
+CXXFLAGS=-std=c++11 -g -O2
 #TCMALLOC=-L../../tera/thirdparty/lib -ltcmalloc_minimal
 LDFLAGS=$(TCMALLOC) -L../ -Lgtest/lib -lgtest -lcommon -lpthread -lrt
 
