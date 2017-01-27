@@ -39,7 +39,61 @@ FILE* g_warning_file = NULL;
 int64_t g_total_size_limit = 0;
 
 std::set<std::string> g_log_set;
-int64_t current_total_size = 0;
+int64_t g_prev_log_size = 0;
+int64_t g_current_log_size = 0;
+
+bool RemoveRedundantLog() {
+    while ((g_log_count && static_cast<int64_t>(g_log_set.size()) > g_log_count) ||
+           (g_total_size_limit && g_prev_log_size + g_current_log_size > g_total_size_limit)) {
+        auto it = g_log_set.begin();
+        if (it != g_log_set.end()) {
+            struct stat sta;
+            if (-1 == lstat(it->c_str(), &sta)) {
+                return false;
+            }
+            remove(it->c_str());
+            g_prev_log_size -= sta.st_size;
+            g_log_set.erase(it);
+        } else {
+            break;
+        }
+    }
+    return true;
+}
+
+bool ListLog() {
+    g_log_set.clear();
+    g_prev_log_size = 0;
+
+    std::string log_path(g_log_file_name);
+    size_t idx = log_path.rfind('/');
+    std::string dir = "./";
+    std::string log(g_log_file_name);
+    if (idx != std::string::npos) {
+        dir = log_path.substr(0, idx + 1);
+        log = log_path.substr(idx + 1);
+    }
+    struct dirent *entry = NULL;
+    DIR *dir_ptr = opendir(dir.c_str());
+    if (dir_ptr == NULL) {
+        return false;
+    }
+    while ((entry = readdir(dir_ptr)) != NULL) {
+        if (std::string(entry->d_name).find(log) != std::string::npos) {
+            std::string file_name = dir + std::string(entry->d_name);
+            struct stat sta;
+            if (-1 == lstat(file_name.c_str(), &sta)) {
+                return false;
+            }
+            if (S_ISREG(sta.st_mode)) {
+                g_log_set.insert(dir + std::string(entry->d_name));
+                g_prev_log_size += sta.st_size;
+            }
+        }
+    }
+    closedir(dir_ptr);
+    return true;
+}
 
 bool GetNewLog(bool append) {
     char buf[30];
@@ -48,8 +102,9 @@ bool GetNewLog(bool append) {
     const time_t seconds = tv.tv_sec;
     struct tm t;
     localtime_r(&seconds, &t);
-    snprintf(buf, 30,
-        "%02d-%02d.%02d:%02d:%02d.%06d",
+    snprintf(buf, 35,
+        "%04d-%02d-%02d.%02d:%02d:%02d.%06d",
+        t.tm_year + 1900,
         t.tm_mon + 1,
         t.tm_mday,
         t.tm_hour,
@@ -67,6 +122,8 @@ bool GetNewLog(bool append) {
     const char* mode = append ? "ab" : "wb";
     FILE* fp = fopen(full_path.c_str(), mode);
     if (fp == NULL) {
+        ListLog();
+        g_prev_log_size -= g_current_log_size;
         return false;
     }
     if (g_log_file != stdout) {
@@ -75,22 +132,9 @@ bool GetNewLog(bool append) {
     g_log_file = fp;
     remove(g_log_file_name.c_str());
     symlink(full_path.substr(idx).c_str(), g_log_file_name.c_str());
-    g_log_set.insert(full_path);
-    while ((g_log_count && static_cast<int64_t>(g_log_set.size()) > g_log_count)
-            || (g_total_size_limit && current_total_size > g_total_size_limit)) {
-        std::set<std::string>::iterator it = g_log_set.begin();
-        if (it != g_log_set.end()) {
-            struct stat sta;
-            if (-1 == lstat(it->c_str(), &sta)) {
-                return false;
-            }
-            remove(it->c_str());
-            current_total_size -= sta.st_size;
-            g_log_set.erase(it++);
-        } else {
-            break;
-        }
-    }
+    g_current_log_size = 0;
+    ListLog();
+    RemoveRedundantLog();
     return true;
 }
 
@@ -133,7 +177,7 @@ public:
                 bg_queue_->pop();
                 if (g_log_file != stdout && g_log_size && str &&
                         static_cast<int64_t>(size_ + str->length()) > g_log_size) {
-                    current_total_size += static_cast<int64_t>(size_ + str->length());
+                    g_current_log_size += static_cast<int64_t>(size_ + str->length());
                     GetNewLog(false);
                     size_ = 0;
                 }
@@ -196,52 +240,12 @@ bool SetWarningFile(const char* path, bool append) {
     return true;
 }
 
-bool RecoverHistory(const char* path) {
-    std::string log_path(path);
-    size_t idx = log_path.rfind('/');
-    std::string dir = "./";
-    std::string log(path);
-    if (idx != std::string::npos) {
-        dir = log_path.substr(0, idx + 1);
-        log = log_path.substr(idx + 1);
-    }
-    struct dirent *entry = NULL;
-    DIR *dir_ptr = opendir(dir.c_str());
-    if (dir_ptr == NULL) {
+bool RecoverHistory() {
+    if (!ListLog()) {
         return false;
     }
-    std::vector<std::string> loglist;
-    while ((entry = readdir(dir_ptr)) != NULL) {
-        if (std::string(entry->d_name).find(log) != std::string::npos) {
-            std::string file_name = dir + std::string(entry->d_name);
-            struct stat sta;
-            if (-1 == lstat(file_name.c_str(), &sta)) {
-                return false;
-            }
-            if (S_ISREG(sta.st_mode)) {
-                loglist.push_back(dir + std::string(entry->d_name));
-                current_total_size += sta.st_size;
-            }
-        }
-    }
-    closedir(dir_ptr);
-    std::sort(loglist.begin(), loglist.end());
-    for (std::vector<std::string>::iterator it = loglist.begin(); it != loglist.end();
-            ++it) {
-        g_log_set.insert(*it);
-    }
-    while ( (g_log_count && static_cast<int64_t>(g_log_set.size()) > g_log_count)
-            || (g_total_size_limit && current_total_size > g_total_size_limit)) {
-        std::set<std::string>::iterator it = g_log_set.begin();
-        if (it != g_log_set.end()) {
-            struct stat sta;
-            if (-1 == lstat(it->c_str(), &sta)) {
-                return false;
-            }
-            remove(it->c_str());
-            current_total_size -= sta.st_size;
-            g_log_set.erase(it++);
-        }
+    if (!RemoveRedundantLog()) {
+        return false;
     }
     return true;
 }
@@ -264,7 +268,7 @@ bool SetLogCount(int count) {
         return false;
     }
     g_log_count = count;
-    if (!RecoverHistory(g_log_file_name.c_str())) {
+    if (!RecoverHistory()) {
         return false;
     }
     return true;
@@ -275,7 +279,7 @@ bool SetLogSizeLimit(int size) {
         return false;
     }
     g_total_size_limit = static_cast<int64_t>(size) << 20;
-    if (!RecoverHistory(g_log_file_name.c_str())) {
+    if (!RecoverHistory()) {
         return false;
     }
     return true;
@@ -291,7 +295,7 @@ void Logv(int log_level, const char* format, va_list ap) {
     }
 
     static const char level_char[] = {
-        'V', 'D', 'I', 'W', 'F'
+        'V', 'D', 'I', 'W', 'E', 'F'
     };
     char cur_level = level_char[0];
     if (log_level < DEBUG) {
@@ -300,10 +304,12 @@ void Logv(int log_level, const char* format, va_list ap) {
         cur_level = level_char[1];
     } else if (log_level < WARNING) {
         cur_level = level_char[2];
-    } else if (log_level < FATAL) {
+    } else if (log_level < ERROR) {
         cur_level = level_char[3];
-    } else {
+    } else if (log_level < FATAL) {
         cur_level = level_char[4];
+    } else {
+        cur_level = level_char[5];
     }
 
     // We try twice: the first time with a fixed-size stack allocated buffer,
@@ -359,7 +365,7 @@ void Logv(int log_level, const char* format, va_list ap) {
         //    fflush(g_warning_file);
         //}
         g_logger.WriteLog(log_level, base, p - base);
-        if (log_level >= FATAL) {
+        if (log_level >= ERROR) {
             g_logger.Flush();
         }
         if (base != buffer) {
@@ -377,7 +383,7 @@ void Log(int level, const char* fmt, ...) {
         Logv(level, fmt, ap);
     }
     va_end(ap);
-    if (level >= FATAL) {
+    if (level == FATAL) {
         abort();
     }
 }
