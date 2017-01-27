@@ -102,6 +102,22 @@ public:
         MutexLock lock(&mu_);
         return max_offset_;
     }
+    //all items in current window will be cleaned,
+    //caller must re-send items in the old sliding window if necessary
+    void SeekToOffset(int32_t target_offset) {
+        MutexLock lock(&mu_);
+        if (target_offset == base_offset_) {
+            return;
+        }
+        for (int i = 0; i < size_; i++) {
+            if (bitmap_[i]) {
+                delete items_[i];
+                bitmap_[i] = 0;
+            }
+        }
+        ready_ = 0;
+        base_offset_ = target_offset;
+    }
 private:
     char* bitmap_;
     Item* items_;
