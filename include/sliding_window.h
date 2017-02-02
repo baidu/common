@@ -102,7 +102,7 @@ public:
         MutexLock lock(&mu_);
         return max_offset_;
     }
-    //all items in current window will be cleaned,
+    //caller should call GetFragments to free items in current window
     //caller must re-send items in the old sliding window if necessary
     void SeekToOffset(int32_t target_offset) {
         MutexLock lock(&mu_);
@@ -111,7 +111,6 @@ public:
         }
         for (int i = 0; i < size_; i++) {
             if (bitmap_[i]) {
-                delete items_[i];
                 bitmap_[i] = 0;
             }
         }
