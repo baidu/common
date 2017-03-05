@@ -30,7 +30,7 @@ public:
         return atomic_add64(&val_,-1) - 1;
     }
     int64_t Get() const {
-        return val_;
+        return atomic_comp_swap(&val_, 0, 0);
     }
     int64_t Set(int64_t v) {
         return atomic_swap64(&val_, v);
