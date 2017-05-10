@@ -8,7 +8,6 @@
 #define  BAIDU_COMMON_COUNTER_H_
 
 #include "atomic.h"
-#include "timer.h"
 
 namespace baidu {
 namespace common {
